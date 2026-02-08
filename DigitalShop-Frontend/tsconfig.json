@@ -34,6 +34,6 @@
       "@shared/*": ["../DigitalShop-Shared/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "../DigitalShop-Shared"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
