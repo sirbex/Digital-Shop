@@ -10,7 +10,7 @@ export interface PurchaseOrder {
   supplierName: string | null;
   orderDate: string;
   expectedDeliveryDate: string | null;
-  status: 'DRAFT' | 'PENDING' | 'SENT' | 'APPROVED' | 'PARTIAL' | 'RECEIVED' | 'COMPLETED' | 'CANCELLED';
+  status: 'DRAFT' | 'SENT' | 'APPROVED' | 'PARTIAL' | 'RECEIVED' | 'CANCELLED';
   paymentTerms: string | null;
   totalAmount: number;
   notes: string | null;

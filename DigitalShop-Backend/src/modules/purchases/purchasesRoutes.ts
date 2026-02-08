@@ -24,13 +24,13 @@ const CreatePOSchema = z.object({
 });
 
 const UpdatePOStatusSchema = z.object({
-  status: z.enum(['DRAFT', 'SENT', 'PARTIAL', 'RECEIVED', 'CANCELLED']),
+  status: z.enum(['DRAFT', 'SENT', 'APPROVED', 'PARTIAL', 'RECEIVED', 'CANCELLED']),
 });
 
 const ListPOsQuerySchema = z.object({
   page: z.string().optional().transform((val) => (val ? parseInt(val) : 1)),
   limit: z.string().optional().transform((val) => (val ? parseInt(val) : 50)),
-  status: z.enum(['DRAFT', 'SENT', 'PARTIAL', 'RECEIVED', 'CANCELLED']).optional(),
+  status: z.enum(['DRAFT', 'SENT', 'APPROVED', 'PARTIAL', 'RECEIVED', 'CANCELLED']).optional(),
   supplierId: z.string().uuid().optional(),
 });
 

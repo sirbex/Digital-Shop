@@ -25,7 +25,7 @@ CREATE TYPE sale_status AS ENUM ('COMPLETED', 'VOID', 'REFUNDED');
 CREATE TYPE payment_method AS ENUM ('CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER', 'CREDIT');
 
 -- Purchase order status
-CREATE TYPE purchase_order_status AS ENUM ('DRAFT', 'SENT', 'PARTIAL', 'RECEIVED', 'CANCELLED');
+CREATE TYPE purchase_order_status AS ENUM ('DRAFT', 'SENT', 'APPROVED', 'PARTIAL', 'RECEIVED', 'CANCELLED');
 
 -- Goods receipt status
 CREATE TYPE goods_receipt_status AS ENUM ('DRAFT', 'COMPLETED', 'CANCELLED');

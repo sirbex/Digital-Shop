@@ -170,13 +170,13 @@ DECLARE
     v_total_purchases NUMERIC;
     v_new_balance NUMERIC;
 BEGIN
-    -- Sum all completed/received purchase orders
-    -- POs go to RECEIVED (via goods receipt finalization) or COMPLETED
+    -- Sum all received purchase orders
+    -- POs go to RECEIVED (via goods receipt finalization) or PARTIAL
     SELECT COALESCE(SUM(total_amount), 0)
     INTO v_total_purchases
     FROM purchase_orders
     WHERE supplier_id = p_supplier_id
-      AND status IN ('COMPLETED', 'RECEIVED', 'PARTIAL');
+      AND status IN ('RECEIVED', 'PARTIAL');
     
     -- For this simplified version, balance = unpaid purchases
     -- (In full system, would subtract supplier payments)

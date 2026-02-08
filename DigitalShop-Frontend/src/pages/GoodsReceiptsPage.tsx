@@ -192,7 +192,7 @@ export default function GoodsReceiptsPage() {
   const fetchPendingPOs = async () => {
     setPosLoading(true);
     try {
-      const response = await purchasesApi.getAll({ status: 'APPROVED', page: poPage, limit: 20 });
+      const response = await purchasesApi.getAll({ status: 'SENT', page: poPage, limit: 20 });
       if (response.data.success) {
         setPendingPOs(response.data.data?.data || response.data.data || []);
         setPoPagination((response.data as any).data?.pagination || (response.data as any).pagination);

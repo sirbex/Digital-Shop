@@ -7,7 +7,7 @@ import { z } from 'zod';
  */
 
 // Purchase order status enum - matches DB: purchase_order_status
-export const PurchaseOrderStatusEnum = z.enum(['DRAFT', 'SENT', 'PARTIAL', 'RECEIVED', 'CANCELLED']);
+export const PurchaseOrderStatusEnum = z.enum(['DRAFT', 'SENT', 'APPROVED', 'PARTIAL', 'RECEIVED', 'CANCELLED']);
 
 export const PurchaseOrderItemSchema = z.object({
   productId: z.string().uuid(),
