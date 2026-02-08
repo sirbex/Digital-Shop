@@ -254,29 +254,69 @@ export function ReportsPage() {
 
     const reportName = reports.find(r => r.id === selectedReport)?.name || 'Report';
     const dateRange = startDate && endDate ? `${startDate} to ${endDate}` : selectedDate || new Date().toLocaleDateString();
+    const container = reportContentRef.current;
 
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    // ── Decide orientation based on table column count ──
+    const wideReports: ReportType[] = ['salesDetails', 'bestSelling', 'customerAging', 'invoices', 'discounts', 'customerAccounts', 'inventory'];
+    const tables = container.querySelectorAll('table');
+    let maxCols = 0;
+    tables.forEach((t) => { const c = t.querySelectorAll('thead th').length; if (c > maxCols) maxCols = c; });
+    const useLandscape = maxCols > 6 || wideReports.includes(selectedReport);
+    const orientation = useLandscape ? 'landscape' : 'portrait';
+
+    const doc = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
-    let yPos = 15;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    let pageNum = 0;
 
-    // ── Header ──
-    doc.setFontSize(18);
-    doc.setTextColor(30, 64, 175); // blue-800
+    // ── Reusable: draw page header & footer ──
+    const drawPageChrome = () => {
+      pageNum++;
+      // Top accent line
+      doc.setDrawColor(37, 99, 235);
+      doc.setLineWidth(1.2);
+      doc.line(margin, 8, pageWidth - margin, 8);
+
+      // Footer
+      doc.setFontSize(7);
+      doc.setTextColor(140, 140, 140);
+      doc.text('DigitalShop ERP System', margin, pageHeight - 8);
+      doc.text(`Page ${pageNum}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
+      doc.text('Confidential', pageWidth / 2, pageHeight - 8, { align: 'center' });
+      // Footer line
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.3);
+      doc.line(margin, pageHeight - 11, pageWidth - margin, pageHeight - 11);
+    };
+
+    drawPageChrome();
+    let yPos = 14;
+
+    // ── Title Block ──
+    doc.setFontSize(16);
+    doc.setTextColor(25, 50, 150);
     doc.text(reportName, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 7;
-    doc.setFontSize(10);
+    yPos += 6;
+    doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Period: ${dateRange}`, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 5;
-    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 3;
-    doc.setDrawColor(37, 99, 235); // blue-600
-    doc.setLineWidth(0.5);
-    doc.line(14, yPos, pageWidth - 14, yPos);
+    doc.text(`Period: ${dateRange}  |  Generated: ${new Date().toLocaleString()}`, pageWidth / 2, yPos, { align: 'center' });
+    yPos += 4;
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(0.4);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
     yPos += 8;
 
-    // ── Extract summary cards (key-value pairs from colored boxes) ──
-    const container = reportContentRef.current;
+    // ── Helper: check for page break ──
+    const ensureSpace = (needed: number) => {
+      if (yPos + needed > pageHeight - 18) {
+        doc.addPage();
+        drawPageChrome();
+        yPos = 14;
+      }
+    };
+
+    // ── Extract summary cards ──
     const summaryPairs: { label: string; value: string }[] = [];
     const gridDivs = container.querySelectorAll('.grid > div, .bg-blue-50, .bg-green-50, .bg-red-50, .bg-purple-50, .bg-orange-50, .bg-yellow-50, .bg-gray-50, .bg-emerald-50');
     gridDivs.forEach((card) => {
@@ -285,107 +325,93 @@ export function ReportsPage() {
       if (labelEl && valueEl) {
         const label = (labelEl.textContent || '').trim();
         const value = (valueEl.textContent || '').trim();
-        if (label && value) {
-          summaryPairs.push({ label, value });
-        }
+        if (label && value) summaryPairs.push({ label, value });
       }
     });
 
-    // Render summary cards as a two-column table
+    // Render summary cards as neat bordered boxes
     if (summaryPairs.length > 0) {
-      doc.setFontSize(12);
-      doc.setTextColor(30, 64, 175);
-      doc.text('Summary', 14, yPos);
-      yPos += 2;
+      doc.setFontSize(11);
+      doc.setTextColor(25, 50, 150);
+      doc.text('Summary', margin, yPos);
+      yPos += 5;
 
-      // Pair them into rows of 2
-      const summaryRows: string[][] = [];
-      for (let i = 0; i < summaryPairs.length; i += 2) {
-        const row: string[] = [
-          summaryPairs[i].label,
-          summaryPairs[i].value,
-          summaryPairs[i + 1]?.label || '',
-          summaryPairs[i + 1]?.value || '',
-        ];
-        summaryRows.push(row);
+      const cols = useLandscape ? 4 : 3;
+      const boxW = (pageWidth - margin * 2 - (cols - 1) * 4) / cols;
+      const boxH = 16;
+      const rows = Math.ceil(summaryPairs.length / cols);
+
+      for (let r = 0; r < rows; r++) {
+        ensureSpace(boxH + 4);
+        for (let c = 0; c < cols; c++) {
+          const idx = r * cols + c;
+          if (idx >= summaryPairs.length) break;
+          const x = margin + c * (boxW + 4);
+          // Box background
+          doc.setFillColor(245, 247, 250);
+          doc.setDrawColor(210, 215, 225);
+          doc.setLineWidth(0.3);
+          doc.roundedRect(x, yPos, boxW, boxH, 2, 2, 'FD');
+          // Label
+          doc.setFontSize(7);
+          doc.setTextColor(110, 110, 110);
+          doc.text(summaryPairs[idx].label, x + 3, yPos + 5.5);
+          // Value
+          doc.setFontSize(11);
+          doc.setTextColor(30, 30, 30);
+          doc.text(summaryPairs[idx].value, x + 3, yPos + 12.5);
+        }
+        yPos += boxH + 3;
       }
-
-      autoTable(doc, {
-        startY: yPos,
-        head: [],
-        body: summaryRows,
-        theme: 'plain',
-        styles: { fontSize: 9, cellPadding: 2 },
-        columnStyles: {
-          0: { fontStyle: 'normal', textColor: [100, 100, 100], cellWidth: 55 },
-          1: { fontStyle: 'bold', cellWidth: 65 },
-          2: { fontStyle: 'normal', textColor: [100, 100, 100], cellWidth: 55 },
-          3: { fontStyle: 'bold', cellWidth: 65 },
-        },
-        margin: { left: 14, right: 14 },
-      });
-      yPos = (doc as any).lastAutoTable?.finalY + 6 || yPos + 30;
+      yPos += 4;
     }
 
-    // ── Extract HTML tables ──
-    const tables = container.querySelectorAll('table');
-    tables.forEach((table, tableIdx) => {
-      // Check if we need a new page
-      if (yPos > doc.internal.pageSize.getHeight() - 30) {
-        doc.addPage();
-        yPos = 15;
-      }
+    // ── Render HTML tables ──
+    tables.forEach((table) => {
+      ensureSpace(25);
 
-      // Get optional heading before the table
+      // Section heading (look for h3/h4 before the table's parent)
       let heading = '';
       let prev = table.parentElement?.previousElementSibling;
+      if (!prev) prev = table.previousElementSibling;
       if (prev && (prev.tagName === 'H3' || prev.tagName === 'H4')) {
         heading = (prev.textContent || '').trim();
       }
       if (heading) {
-        doc.setFontSize(11);
-        doc.setTextColor(50, 50, 50);
-        doc.text(heading, 14, yPos);
-        yPos += 4;
+        doc.setFontSize(10);
+        doc.setTextColor(25, 50, 150);
+        doc.text(heading, margin, yPos);
+        yPos += 5;
       }
 
       // Parse thead
       const headCells: string[] = [];
-      table.querySelectorAll('thead th').forEach((th) => {
-        headCells.push((th.textContent || '').trim());
-      });
+      table.querySelectorAll('thead th').forEach((th) => headCells.push((th.textContent || '').trim()));
 
-      // Parse tbody rows
+      // Parse tbody
       const bodyRows: string[][] = [];
       table.querySelectorAll('tbody tr').forEach((tr) => {
         const row: string[] = [];
-        tr.querySelectorAll('td').forEach((td) => {
-          row.push((td.textContent || '').trim());
-        });
+        tr.querySelectorAll('td').forEach((td) => row.push((td.textContent || '').trim()));
         if (row.length > 0) bodyRows.push(row);
       });
 
-      // Parse tfoot if present
+      // Parse tfoot
       const footRows: string[][] = [];
       table.querySelectorAll('tfoot tr').forEach((tr) => {
         const row: string[] = [];
-        tr.querySelectorAll('td').forEach((td) => {
-          row.push((td.textContent || '').trim());
-        });
+        tr.querySelectorAll('td').forEach((td) => row.push((td.textContent || '').trim()));
         if (row.length > 0) footRows.push(row);
       });
 
       if (headCells.length === 0 && bodyRows.length === 0) return;
 
-      // Detect right-aligned columns from the original th classes
+      // Detect column alignment from th classes
       const colStyles: Record<number, any> = {};
       table.querySelectorAll('thead th').forEach((th, idx) => {
         const cls = th.className || '';
-        if (cls.includes('text-right')) {
-          colStyles[idx] = { halign: 'right' };
-        } else if (cls.includes('text-center')) {
-          colStyles[idx] = { halign: 'center' };
-        }
+        if (cls.includes('text-right')) colStyles[idx] = { halign: 'right' };
+        else if (cls.includes('text-center')) colStyles[idx] = { halign: 'center' };
       });
 
       autoTable(doc, {
@@ -393,75 +419,145 @@ export function ReportsPage() {
         head: headCells.length > 0 ? [headCells] : undefined,
         body: bodyRows,
         foot: footRows.length > 0 ? footRows : undefined,
-        theme: 'striped',
-        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', fontSize: 8 },
-        bodyStyles: { fontSize: 8 },
-        footStyles: { fillColor: [243, 244, 246], textColor: [30, 30, 30], fontStyle: 'bold', fontSize: 8 },
+        theme: 'grid',
+        styles: {
+          fontSize: 8,
+          cellPadding: { top: 2.5, right: 3, bottom: 2.5, left: 3 },
+          lineColor: [220, 225, 230],
+          lineWidth: 0.25,
+          overflow: 'linebreak',
+        },
+        headStyles: {
+          fillColor: [37, 99, 235],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8,
+          cellPadding: { top: 3, right: 3, bottom: 3, left: 3 },
+        },
+        bodyStyles: { textColor: [40, 40, 40] },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        footStyles: {
+          fillColor: [235, 238, 242],
+          textColor: [25, 25, 25],
+          fontStyle: 'bold',
+          fontSize: 8,
+        },
         columnStyles: colStyles,
-        margin: { left: 14, right: 14 },
+        margin: { left: margin, right: margin },
         didDrawPage: () => {
-          // Footer on every page
-          doc.setFontSize(8);
-          doc.setTextColor(150, 150, 150);
-          doc.text(
-            'DigitalShop ERP System - Confidential Report',
-            pageWidth / 2,
-            doc.internal.pageSize.getHeight() - 7,
-            { align: 'center' }
-          );
+          // Redraw chrome on overflow pages
+          if ((doc as any).internal.getNumberOfPages() > pageNum) {
+            drawPageChrome();
+          }
         },
       });
 
       yPos = (doc as any).lastAutoTable?.finalY + 8 || yPos + 20;
     });
 
-    // ── Profit Flow / flex-based sections (no <table>) ──
-    // Extract flow rows from .flex.justify-between containers (P&L, Income vs Expense)
-    if (tables.length === 0 || selectedReport === 'profitLoss' || selectedReport === 'incomeVsExpense') {
+    // ── P&L / flex-based line items (profitLoss, incomeVsExpense, summaries) ──
+    const flowSections = container.querySelectorAll('.bg-white.border.rounded-lg, .border-2.rounded-lg');
+    if (flowSections.length > 0) {
+      flowSections.forEach((section) => {
+        // Section title from colored header bar
+        const headerBar = section.querySelector('[class*="bg-blue-600"], [class*="bg-red-600"], [class*="bg-green-600"], [class*="bg-orange-600"], [class*="bg-green-700"], [class*="bg-red-700"]');
+        const sectionTitle = headerBar ? (headerBar.textContent || '').trim() : '';
+
+        // Gather rows
+        const rows: { label: string; value: string; isBold: boolean; isNegative: boolean }[] = [];
+        section.querySelectorAll('.flex.justify-between').forEach((row) => {
+          const children = row.querySelectorAll('span, p, div');
+          if (children.length >= 2) {
+            const label = (children[0].textContent || '').trim();
+            const value = (children[children.length - 1].textContent || '').trim();
+            if (label && value && label !== value) {
+              const isBold = row.classList.contains('font-bold') || row.classList.contains('font-semibold')
+                || children[0].classList.contains('font-bold') || children[0].classList.contains('font-semibold');
+              const isNeg = value.startsWith('(') || value.startsWith('-');
+              rows.push({ label, value, isBold, isNegative: isNeg });
+            }
+          }
+        });
+
+        if (rows.length === 0) return;
+
+        ensureSpace(rows.length * 6 + 14);
+
+        // Section title
+        if (sectionTitle) {
+          doc.setFillColor(37, 99, 235);
+          doc.roundedRect(margin, yPos, pageWidth - margin * 2, 7, 1, 1, 'F');
+          doc.setFontSize(9);
+          doc.setTextColor(255, 255, 255);
+          doc.text(sectionTitle, margin + 4, yPos + 5);
+          yPos += 10;
+        }
+
+        // Line items
+        const tableData = rows.map((r) => [r.label, r.value]);
+        autoTable(doc, {
+          startY: yPos,
+          body: tableData,
+          theme: 'plain',
+          styles: { fontSize: 9, cellPadding: { top: 2, right: 4, bottom: 2, left: 4 } },
+          columnStyles: {
+            0: { cellWidth: useLandscape ? 180 : 120 },
+            1: { halign: 'right', cellWidth: useLandscape ? 70 : 50 },
+          },
+          margin: { left: margin + 2, right: margin + 2 },
+          didParseCell: (data: any) => {
+            const rowInfo = rows[data.row?.index];
+            if (rowInfo?.isBold) {
+              data.cell.styles.fontStyle = 'bold';
+              data.cell.styles.fontSize = 10;
+            }
+            if (data.column.index === 1 && rowInfo?.isNegative) {
+              data.cell.styles.textColor = [180, 30, 30];
+            }
+            // Add separator line for bold rows
+            if (rowInfo?.isBold && data.row?.index > 0) {
+              data.cell.styles.cellPadding = { top: 4, right: 4, bottom: 2, left: 4 };
+            }
+          },
+        });
+        yPos = (doc as any).lastAutoTable?.finalY + 6 || yPos + 20;
+      });
+    }
+
+    // ── Fallback: if no tables and no flow sections, render remaining flex rows ──
+    if (tables.length === 0 && flowSections.length === 0) {
       const flexRows: string[][] = [];
       container.querySelectorAll('.flex.justify-between').forEach((row) => {
         const spans = row.querySelectorAll('span, p, div');
         if (spans.length >= 2) {
           const label = (spans[0].textContent || '').trim();
           const value = (spans[spans.length - 1].textContent || '').trim();
-          if (label && value && label !== value) {
-            flexRows.push([label, value]);
-          }
+          if (label && value && label !== value) flexRows.push([label, value]);
         }
       });
 
-      // De-duplicate with summary pairs to avoid double entries
       const existingLabels = new Set(summaryPairs.map(p => p.label));
       const uniqueFlexRows = flexRows.filter(r => !existingLabels.has(r[0]));
 
-      if (uniqueFlexRows.length > 0 && tables.length === 0) {
+      if (uniqueFlexRows.length > 0) {
         autoTable(doc, {
           startY: yPos,
           head: [['Item', 'Amount']],
           body: uniqueFlexRows,
-          theme: 'striped',
-          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', fontSize: 9 },
-          bodyStyles: { fontSize: 9 },
-          columnStyles: { 0: { cellWidth: 140 }, 1: { halign: 'right' } },
-          margin: { left: 14, right: 14 },
+          theme: 'grid',
+          styles: { fontSize: 9, cellPadding: 3, lineColor: [220, 225, 230], lineWidth: 0.25 },
+          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [248, 250, 252] },
+          columnStyles: { 0: { cellWidth: useLandscape ? 180 : 120 }, 1: { halign: 'right' } },
+          margin: { left: margin, right: margin },
         });
-        yPos = (doc as any).lastAutoTable?.finalY + 8 || yPos + 20;
       }
     }
 
-    // ── Footer on last page ──
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text(
-      'DigitalShop ERP System - Confidential Report',
-      pageWidth / 2,
-      doc.internal.pageSize.getHeight() - 7,
-      { align: 'center' }
-    );
-
-    // ── Download ──
-    const fileName = `${reportName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-    doc.save(fileName);
+    // ── Save ──
+    const safeReportName = reportName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+    const dateStamp = new Date().toISOString().split('T')[0];
+    doc.save(`${safeReportName}_${dateStamp}.pdf`);
   };
 
   const exportToCSV = () => {
