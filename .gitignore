@@ -1,0 +1,53 @@
+# ============================================
+# DigitalShop - Root .gitignore
+# ============================================
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.production
+
+# Logs
+logs/
+*.log
+
+# Database backups (contain real data)
+backups/
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temp / test files
+*.tmp
+test-*.json
+test-*.txt
+tsc-*.txt
+tsc_*.txt
+backend.log
+server-out.txt
+server-err.txt
+
+# PM2
+pm2-*.log
+
+# npm global installs (pm2 binaries etc.)
+npm-global/
+
+# Caddy logs (access logs contain PII)
+caddy-access.log

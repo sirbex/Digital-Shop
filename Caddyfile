@@ -1,0 +1,70 @@
+# ============================================================================
+# DIGITALSHOP CADDY REVERSE PROXY
+# ============================================================================
+#
+# Caddy handles:
+#   - Serving the frontend (static files from DigitalShop-Frontend/dist/)
+#   - Proxying /api/* and /health to the backend (localhost:8340)
+#   - Automatic HTTPS/TLS when using a real domain
+#
+# SETUP:
+#   1. Download Caddy: https://caddyserver.com/download (Windows amd64)
+#   2. Place caddy.exe somewhere in your PATH (e.g. C:\tools\caddy\)
+#   3. Run: caddy run --config Caddyfile
+#   4. Or install as Windows service: caddy run --config Caddyfile --service
+#
+# FOR LOCAL DEVELOPMENT/TESTING (HTTP only on localhost):
+#   caddy run --config Caddyfile
+#   → Open http://localhost in your browser
+#
+# FOR PRODUCTION WITH DOMAIN (automatic HTTPS):
+#   1. Replace "localhost" below with your real domain: shop.yourdomain.com
+#   2. Ensure ports 80 and 443 are open on your firewall
+#   3. Ensure DNS A record points to your server IP
+#   4. Run: caddy run --config Caddyfile
+#   → Caddy auto-provisions Let's Encrypt TLS certificate
+#
+# ============================================================================
+
+# Change "localhost" to your domain for automatic HTTPS
+# Examples:
+#   :80                   → HTTP only on port 80 (for local/LAN deployment)
+#   shop.example.com      → Automatic HTTPS via Let's Encrypt
+#   localhost              → HTTPS with self-signed cert (dev only)
+:80 {
+	# ── Frontend: Serve React static files ──
+	root * C:\Users\Chase\SimpleShopUG\DigitalShop-Frontend\dist
+	encode gzip zstd
+
+	# ── Backend: Proxy API and health endpoints ──
+	handle /api/* {
+		reverse_proxy localhost:8340
+	}
+
+	handle /health {
+		reverse_proxy localhost:8340
+	}
+
+	# ── SPA Fallback: React Router handles client-side routing ──
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+
+	# ── Security Headers ──
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# ── Logging ──
+	log {
+		output file C:\Users\Chase\SimpleShopUG\logs\caddy-access.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+	}
+}
