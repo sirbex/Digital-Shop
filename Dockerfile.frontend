@@ -1,0 +1,24 @@
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+# Copy shared package first (frontend depends on it)
+COPY DigitalShop-Shared ./DigitalShop-Shared
+RUN cd DigitalShop-Shared && npm install
+
+# Copy frontend and install
+COPY DigitalShop-Frontend ./DigitalShop-Frontend
+RUN cd DigitalShop-Frontend && npm install
+
+# Build frontend (VITE_API_URL is set via Railway env vars at build time)
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+RUN cd DigitalShop-Frontend && npx vite build
+
+# Production stage - serve with lightweight static server
+FROM node:20-alpine
+RUN npm install -g serve
+WORKDIR /app
+COPY --from=build /app/DigitalShop-Frontend/dist ./dist
+EXPOSE 3000
+CMD ["serve", "dist", "-s", "-l", "3000"]
