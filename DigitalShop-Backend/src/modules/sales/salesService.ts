@@ -144,10 +144,10 @@ function toSaleItem(row: salesRepository.SaleItemRow): SaleItem {
 /**
  * Calculate sale totals using Decimal.js
  */
-function calculateSaleTotals(items: CreateSaleData['items']) {
+function calculateSaleTotals(items: CreateSaleData['items'], cartDiscountAmount?: number) {
   let subtotal = new Decimal(0);
   let totalTax = new Decimal(0);
-  let totalDiscount = new Decimal(0);
+  let totalItemDiscount = new Decimal(0);
   let totalCost = new Decimal(0);
 
   const processedItems = items.map(item => {
@@ -170,13 +170,15 @@ function calculateSaleTotals(items: CreateSaleData['items']) {
     const itemTotal = afterDiscount.plus(taxAmount);
 
     // Calculate cost and profit
+    // CRITICAL: Profit EXCLUDES tax (tax is government money, not profit)
+    // lineProfit = (revenue before tax) - cost = afterDiscount - itemCost
     const itemCost = quantity.times(unitCost);
-    const lineProfit = itemTotal.minus(itemCost);
+    const lineProfit = afterDiscount.minus(itemCost);
 
     // Accumulate totals
     subtotal = subtotal.plus(itemSubtotal);
     totalTax = totalTax.plus(taxAmount);
-    totalDiscount = totalDiscount.plus(discountAmount);
+    totalItemDiscount = totalItemDiscount.plus(discountAmount);
     totalCost = totalCost.plus(itemCost);
 
     return {
@@ -193,10 +195,20 @@ function calculateSaleTotals(items: CreateSaleData['items']) {
     };
   });
 
-  const totalAmount = subtotal.plus(totalTax).minus(totalDiscount);
-  const profit = totalAmount.minus(totalCost);
-  const profitMargin = totalAmount.greaterThan(0) 
-    ? profit.dividedBy(totalAmount).times(100) 
+  // Cart-level discount (applied to the whole order, not distributed to items)
+  const cartDiscount = new Decimal(cartDiscountAmount || 0);
+  const totalDiscount = totalItemDiscount.plus(cartDiscount);
+
+  // Total amount = subtotal - all discounts + tax
+  const totalAmount = subtotal.minus(totalDiscount).plus(totalTax);
+
+  // CRITICAL: Profit = Revenue - Cost
+  // Revenue = subtotal - ALL discounts (item-level + cart-level), EXCLUDING tax
+  // Tax is government money, NOT profit
+  const revenue = subtotal.minus(totalDiscount);
+  const profit = revenue.minus(totalCost);
+  const profitMargin = revenue.greaterThan(0) 
+    ? profit.dividedBy(revenue).times(100) 
     : new Decimal(0);
 
   return {
@@ -388,7 +400,13 @@ export async function createSale(pool: Pool, data: CreateSaleData): Promise<stri
   });
 
   // Calculate totals
-  const totals = calculateSaleTotals(enrichedItems);
+  // Cart-level discount = total discount from frontend - sum of item-level discounts
+  // This ensures cart-wide discounts (not distributed to items) are included in profit calc
+  const itemLevelDiscountTotal = enrichedItems.reduce((sum, item) => sum + (item.discountAmount || 0), 0);
+  const frontendTotalDiscount = data.discountAmount || 0;
+  const cartDiscount = Math.max(0, frontendTotalDiscount - itemLevelDiscountTotal);
+  
+  const totals = calculateSaleTotals(enrichedItems, cartDiscount);
 
   // ========================================================================
   // CRITICAL FIX: Use frontend's totalAmount for payment validation
