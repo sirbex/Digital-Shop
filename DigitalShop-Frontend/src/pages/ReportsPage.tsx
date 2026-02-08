@@ -256,6 +256,202 @@ export function ReportsPage() {
     const dateRange = startDate && endDate ? `${startDate} to ${endDate}` : selectedDate || new Date().toLocaleDateString();
     const container = reportContentRef.current;
 
+    // ══════════════════════════════════════════════════════════════
+    // DEDICATED P&L PDF — compact single-page financial statement
+    // ══════════════════════════════════════════════════════════════
+    if (selectedReport === 'profitLoss' && reportData) {
+      const plDoc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pw = plDoc.internal.pageSize.getWidth();
+      const ph = plDoc.internal.pageSize.getHeight();
+      const m = 18;
+      let y = 12;
+
+      // Top accent
+      plDoc.setDrawColor(37, 99, 235);
+      plDoc.setLineWidth(1.2);
+      plDoc.line(m, y, pw - m, y);
+      y += 8;
+
+      // Title
+      plDoc.setFontSize(16);
+      plDoc.setTextColor(25, 50, 150);
+      plDoc.text('Profit & Loss Statement', pw / 2, y, { align: 'center' });
+      y += 6;
+      plDoc.setFontSize(9);
+      plDoc.setTextColor(100, 100, 100);
+      plDoc.text(`Period: ${dateRange}  |  Generated: ${new Date().toLocaleString()}`, pw / 2, y, { align: 'center' });
+      y += 4;
+      plDoc.setDrawColor(37, 99, 235);
+      plDoc.setLineWidth(0.4);
+      plDoc.line(m, y, pw - m, y);
+      y += 6;
+
+      // Parse data
+      const rev = reportData.revenue || {};
+      const opex = reportData.operatingExpenses || { total: 0, count: 0, byCategory: [] };
+      const grossRev = parseFloat(rev.grossRevenue || reportData.grossSales || 0);
+      const disc = parseFloat(rev.discounts || reportData.totalDiscount || 0);
+      const netRev = parseFloat(rev.netRevenue || reportData.netRevenue || 0);
+      const taxCol = parseFloat(rev.taxCollected || reportData.totalTax || 0);
+      const txnCount = parseInt(rev.transactionCount || reportData.transactionCount || 0);
+      const cogs = parseFloat(reportData.costOfGoodsSold || 0);
+      const gp = parseFloat(reportData.grossProfit || 0);
+      const gpMargin = parseFloat(reportData.grossProfitMargin || 0);
+      const totalExp = parseFloat(opex.total || 0);
+      const cats: { category: string; amount: number }[] = (opex.byCategory || []).map((c: any) => ({
+        category: (c.category || '').replace(/_/g, ' '),
+        amount: parseFloat(c.amount || 0),
+      }));
+      const np = reportData.netProfit ?? (gp - totalExp);
+      const npMargin = reportData.netProfitMargin ?? (netRev > 0 ? (np / netRev) * 100 : 0);
+      const ar = parseFloat(reportData.accountsReceivable || 0);
+      const iv = parseFloat(reportData.inventoryValue || 0);
+
+      const fmt = (v: number) => `UGX ${Math.abs(v).toLocaleString(undefined, { minimumFractionDigits: 0 })}`;
+      const fmtNeg = (v: number) => `(${fmt(v)})`;
+
+      // Build P&L rows: [label, amount, style]
+      type PLRow = { label: string; value: string; style: 'section' | 'normal' | 'indent' | 'subtotal' | 'total' | 'spacer' };
+      const rows: PLRow[] = [
+        { label: 'REVENUE', value: '', style: 'section' },
+        { label: 'Gross Sales (excl. tax)', value: fmt(grossRev), style: 'normal' },
+        { label: 'Less: Discounts', value: fmtNeg(disc), style: 'indent' },
+        { label: 'Net Revenue', value: fmt(netRev), style: 'subtotal' },
+        { label: '', value: '', style: 'spacer' },
+        { label: 'COST OF GOODS SOLD', value: '', style: 'section' },
+        { label: 'Total COGS', value: fmtNeg(cogs), style: 'normal' },
+        { label: '', value: '', style: 'spacer' },
+        { label: 'GROSS PROFIT', value: fmt(gp), style: 'total' },
+        { label: 'Gross Profit Margin', value: `${gpMargin.toFixed(1)}%`, style: 'indent' },
+        { label: '', value: '', style: 'spacer' },
+        { label: 'OPERATING EXPENSES', value: '', style: 'section' },
+      ];
+      cats.forEach((c) => {
+        rows.push({ label: c.category, value: fmtNeg(c.amount), style: 'indent' });
+      });
+      if (cats.length > 0) {
+        rows.push({ label: 'Total Operating Expenses', value: fmtNeg(totalExp), style: 'subtotal' });
+      } else {
+        rows.push({ label: 'Total Operating Expenses', value: fmtNeg(totalExp), style: 'normal' });
+      }
+      rows.push(
+        { label: '', value: '', style: 'spacer' },
+        { label: np >= 0 ? 'NET PROFIT' : 'NET LOSS', value: np >= 0 ? fmt(np) : `(${fmt(np)})`, style: 'total' },
+        { label: 'Net Profit Margin', value: `${parseFloat(String(npMargin)).toFixed(1)}%`, style: 'indent' },
+      );
+
+      // Render financial statement table
+      const tableBody = rows.map((r) => [r.label, r.value]);
+      autoTable(plDoc, {
+        startY: y,
+        body: tableBody,
+        theme: 'plain',
+        styles: { fontSize: 9, cellPadding: { top: 1.8, right: 4, bottom: 1.8, left: 4 } },
+        columnStyles: {
+          0: { cellWidth: pw - m * 2 - 55 },
+          1: { halign: 'right', cellWidth: 55 },
+        },
+        margin: { left: m, right: m },
+        didParseCell: (data: any) => {
+          const row = rows[data.row?.index];
+          if (!row) return;
+          if (row.style === 'section') {
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.fontSize = 10;
+            data.cell.styles.textColor = [25, 50, 150];
+            data.cell.styles.cellPadding = { top: 5, right: 4, bottom: 2, left: 4 };
+          } else if (row.style === 'subtotal') {
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.fontSize = 9.5;
+          } else if (row.style === 'total') {
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.fontSize = 11;
+            data.cell.styles.cellPadding = { top: 4, right: 4, bottom: 3, left: 4 };
+            if (data.column.index === 1) {
+              data.cell.styles.textColor = np >= 0 ? [5, 120, 50] : [200, 30, 30];
+            }
+          } else if (row.style === 'indent') {
+            data.cell.styles.textColor = [90, 90, 90];
+            if (data.column.index === 0) {
+              data.cell.styles.cellPadding = { top: 1.8, right: 4, bottom: 1.8, left: 12 };
+            }
+          } else if (row.style === 'spacer') {
+            data.cell.styles.cellPadding = { top: 1, right: 0, bottom: 1, left: 0 };
+            data.cell.styles.fontSize = 3;
+          }
+          // Negative values in red
+          if (data.column.index === 1 && row.value.startsWith('(') && row.style !== 'total') {
+            data.cell.styles.textColor = [180, 50, 50];
+          }
+        },
+        didDrawCell: (data: any) => {
+          const row = rows[data.row?.index];
+          if (!row) return;
+          // Draw line above subtotals and totals
+          if (row.style === 'subtotal' || row.style === 'total') {
+            plDoc.setDrawColor(180, 180, 180);
+            plDoc.setLineWidth(row.style === 'total' ? 0.5 : 0.2);
+            plDoc.line(data.cell.x, data.cell.y, data.cell.x + data.cell.width, data.cell.y);
+          }
+          // Double line under NET PROFIT
+          if (row.style === 'total' && row.label.startsWith('NET')) {
+            const bottom = data.cell.y + data.cell.height;
+            plDoc.setDrawColor(30, 30, 30);
+            plDoc.setLineWidth(0.3);
+            plDoc.line(data.cell.x, bottom - 0.5, data.cell.x + data.cell.width, bottom - 0.5);
+            plDoc.line(data.cell.x, bottom + 0.5, data.cell.x + data.cell.width, bottom + 0.5);
+          }
+        },
+      });
+
+      y = (plDoc as any).lastAutoTable?.finalY + 10 || y + 80;
+
+      // Additional info summary boxes
+      const infoItems = [
+        { label: 'Tax Collected', value: fmt(taxCol) },
+        { label: 'Transactions', value: String(txnCount) },
+        { label: 'Accounts Receivable', value: fmt(ar) },
+        { label: 'Inventory Value', value: fmt(iv) },
+      ];
+
+      const boxCols = 4;
+      const boxW = (pw - m * 2 - (boxCols - 1) * 3) / boxCols;
+      const boxH = 14;
+
+      plDoc.setFontSize(10);
+      plDoc.setTextColor(25, 50, 150);
+      plDoc.text('Additional Information', m, y);
+      y += 4;
+
+      infoItems.forEach((item, i) => {
+        const x = m + i * (boxW + 3);
+        plDoc.setFillColor(245, 247, 250);
+        plDoc.setDrawColor(210, 215, 225);
+        plDoc.setLineWidth(0.3);
+        plDoc.roundedRect(x, y, boxW, boxH, 1.5, 1.5, 'FD');
+        plDoc.setFontSize(7);
+        plDoc.setTextColor(110, 110, 110);
+        plDoc.text(item.label, x + 3, y + 5);
+        plDoc.setFontSize(10);
+        plDoc.setTextColor(30, 30, 30);
+        plDoc.text(item.value, x + 3, y + 11);
+      });
+
+      // Footer
+      plDoc.setFontSize(7);
+      plDoc.setTextColor(140, 140, 140);
+      plDoc.text('DigitalShop ERP System', m, ph - 8);
+      plDoc.text('Confidential', pw / 2, ph - 8, { align: 'center' });
+      plDoc.text('Page 1', pw - m, ph - 8, { align: 'right' });
+      plDoc.setDrawColor(200, 200, 200);
+      plDoc.setLineWidth(0.3);
+      plDoc.line(m, ph - 11, pw - m, ph - 11);
+
+      const dateStamp = new Date().toISOString().split('T')[0];
+      plDoc.save(`Profit_Loss_Statement_${dateStamp}.pdf`);
+      return; // Skip generic export
+    }
+
     // ── Decide orientation based on table column count ──
     const wideReports: ReportType[] = ['salesDetails', 'bestSelling', 'customerAging', 'invoices', 'discounts', 'customerAccounts', 'inventory'];
     const tables = container.querySelectorAll('table');
