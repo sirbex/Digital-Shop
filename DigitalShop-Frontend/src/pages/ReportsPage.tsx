@@ -1570,13 +1570,13 @@ export function ReportsPage() {
             </thead>
             <tbody className="divide-y">
               {reportData.map((row: any) => (
-                <tr key={row.paymentDate} className="hover:bg-gray-50">
-                  <td className="px-3 py-2 font-medium">{row.paymentDate}</td>
+                <tr key={row.date} className="hover:bg-gray-50">
+                  <td className="px-3 py-2 font-medium">{row.date}</td>
                   <td className="px-3 py-2 text-right">{row.paymentCount}</td>
-                  <td className="px-3 py-2 text-right">{parseFloat(row.cashAmount || 0).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right">{parseFloat(row.mobileMoneyAmount || 0).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right">{parseFloat(row.cardAmount || 0).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right">{parseFloat(row.bankTransferAmount || 0).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right">{parseFloat(row.cashCollected || 0).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right">{parseFloat(row.mobileMoneyCollected || 0).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right">{parseFloat(row.cardCollected || 0).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right">{parseFloat(row.bankTransferCollected || 0).toLocaleString()}</td>
                   <td className="px-3 py-2 text-right font-semibold text-green-600">
                     {parseFloat(row.totalCollected || 0).toLocaleString()}
                   </td>
@@ -1587,10 +1587,10 @@ export function ReportsPage() {
               <tr>
                 <td className="px-3 py-2">Total</td>
                 <td className="px-3 py-2 text-right">{reportData.reduce((sum: number, r: any) => sum + parseInt(r.paymentCount || 0), 0)}</td>
-                <td className="px-3 py-2 text-right">{reportData.reduce((sum: number, r: any) => sum + parseFloat(r.cashAmount || 0), 0).toLocaleString()}</td>
-                <td className="px-3 py-2 text-right">{reportData.reduce((sum: number, r: any) => sum + parseFloat(r.mobileMoneyAmount || 0), 0).toLocaleString()}</td>
-                <td className="px-3 py-2 text-right">{reportData.reduce((sum: number, r: any) => sum + parseFloat(r.cardAmount || 0), 0).toLocaleString()}</td>
-                <td className="px-3 py-2 text-right">{reportData.reduce((sum: number, r: any) => sum + parseFloat(r.bankTransferAmount || 0), 0).toLocaleString()}</td>
+                <td className="px-3 py-2 text-right">{reportData.reduce((sum: number, r: any) => sum + parseFloat(r.cashCollected || 0), 0).toLocaleString()}</td>
+                <td className="px-3 py-2 text-right">{reportData.reduce((sum: number, r: any) => sum + parseFloat(r.mobileMoneyCollected || 0), 0).toLocaleString()}</td>
+                <td className="px-3 py-2 text-right">{reportData.reduce((sum: number, r: any) => sum + parseFloat(r.cardCollected || 0), 0).toLocaleString()}</td>
+                <td className="px-3 py-2 text-right">{reportData.reduce((sum: number, r: any) => sum + parseFloat(r.bankTransferCollected || 0), 0).toLocaleString()}</td>
                 <td className="px-3 py-2 text-right text-green-600">UGX {totalCollections.toLocaleString()}</td>
               </tr>
             </tfoot>
