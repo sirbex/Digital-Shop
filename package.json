@@ -1,0 +1,20 @@
+{
+  "name": "digitalshop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DigitalShop — Enterprise POS, Inventory & Reporting System",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "install:shared": "cd DigitalShop-Shared && npm install",
+    "install:backend": "cd DigitalShop-Backend && npm install",
+    "install:all": "npm run install:shared && npm run install:backend",
+    "build:shared": "cd DigitalShop-Shared && npx tsc",
+    "build:backend": "cd DigitalShop-Backend && npx tsc",
+    "build": "npm run build:shared && npm run build:backend",
+    "start": "cd DigitalShop-Backend && node dist/server.js",
+    "postinstall": "npm run install:shared && npm run install:backend"
+  }
+}

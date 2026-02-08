@@ -1,0 +1,21 @@
+# Railway / Nixpacks configuration for DigitalShop monorepo
+# Tells the build system how to install, build, and start the app
+
+[phases.setup]
+nixPkgs = ["nodejs_18", "npm-9_x"]
+
+[phases.install]
+cmds = [
+  "npm install",
+  "cd DigitalShop-Shared && npm install",
+  "cd DigitalShop-Backend && npm install"
+]
+
+[phases.build]
+cmds = [
+  "cd DigitalShop-Shared && npx tsc",
+  "cd DigitalShop-Backend && npx tsc"
+]
+
+[start]
+cmd = "cd DigitalShop-Backend && node dist/server.js"
