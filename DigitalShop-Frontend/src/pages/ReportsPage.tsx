@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { reportsApi } from '../lib/api';
 import { usePermissions } from '../hooks/usePermissions';
 
@@ -251,94 +253,215 @@ export function ReportsPage() {
     if (!reportContentRef.current) return;
 
     const reportName = reports.find(r => r.id === selectedReport)?.name || 'Report';
-    const printWindow = window.open('', '_blank', 'width=1000,height=800');
-    if (!printWindow) {
-      alert('Please allow popups to export PDF');
-      return;
+    const dateRange = startDate && endDate ? `${startDate} to ${endDate}` : selectedDate || new Date().toLocaleDateString();
+
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 15;
+
+    // ── Header ──
+    doc.setFontSize(18);
+    doc.setTextColor(30, 64, 175); // blue-800
+    doc.text(reportName, pageWidth / 2, yPos, { align: 'center' });
+    yPos += 7;
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Period: ${dateRange}`, pageWidth / 2, yPos, { align: 'center' });
+    yPos += 5;
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, yPos, { align: 'center' });
+    yPos += 3;
+    doc.setDrawColor(37, 99, 235); // blue-600
+    doc.setLineWidth(0.5);
+    doc.line(14, yPos, pageWidth - 14, yPos);
+    yPos += 8;
+
+    // ── Extract summary cards (key-value pairs from colored boxes) ──
+    const container = reportContentRef.current;
+    const summaryPairs: { label: string; value: string }[] = [];
+    const gridDivs = container.querySelectorAll('.grid > div, .bg-blue-50, .bg-green-50, .bg-red-50, .bg-purple-50, .bg-orange-50, .bg-yellow-50, .bg-gray-50, .bg-emerald-50');
+    gridDivs.forEach((card) => {
+      const labelEl = card.querySelector('p.text-xs, p.text-sm, div.text-sm');
+      const valueEl = card.querySelector('p.text-xl, p.text-2xl, p.text-lg, p.text-3xl, div.text-2xl, div.text-xl');
+      if (labelEl && valueEl) {
+        const label = (labelEl.textContent || '').trim();
+        const value = (valueEl.textContent || '').trim();
+        if (label && value) {
+          summaryPairs.push({ label, value });
+        }
+      }
+    });
+
+    // Render summary cards as a two-column table
+    if (summaryPairs.length > 0) {
+      doc.setFontSize(12);
+      doc.setTextColor(30, 64, 175);
+      doc.text('Summary', 14, yPos);
+      yPos += 2;
+
+      // Pair them into rows of 2
+      const summaryRows: string[][] = [];
+      for (let i = 0; i < summaryPairs.length; i += 2) {
+        const row: string[] = [
+          summaryPairs[i].label,
+          summaryPairs[i].value,
+          summaryPairs[i + 1]?.label || '',
+          summaryPairs[i + 1]?.value || '',
+        ];
+        summaryRows.push(row);
+      }
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [],
+        body: summaryRows,
+        theme: 'plain',
+        styles: { fontSize: 9, cellPadding: 2 },
+        columnStyles: {
+          0: { fontStyle: 'normal', textColor: [100, 100, 100], cellWidth: 55 },
+          1: { fontStyle: 'bold', cellWidth: 65 },
+          2: { fontStyle: 'normal', textColor: [100, 100, 100], cellWidth: 55 },
+          3: { fontStyle: 'bold', cellWidth: 65 },
+        },
+        margin: { left: 14, right: 14 },
+      });
+      yPos = (doc as any).lastAutoTable?.finalY + 6 || yPos + 30;
     }
 
-    const content = reportContentRef.current.innerHTML;
-    const dateRange = startDate && endDate ? `${startDate} to ${endDate}` : new Date().toLocaleDateString();
+    // ── Extract HTML tables ──
+    const tables = container.querySelectorAll('table');
+    tables.forEach((table, tableIdx) => {
+      // Check if we need a new page
+      if (yPos > doc.internal.pageSize.getHeight() - 30) {
+        doc.addPage();
+        yPos = 15;
+      }
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${reportName} - DigitalShop</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
-            .header { text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #2563eb; }
-            .header h1 { font-size: 24px; color: #1e40af; margin-bottom: 5px; }
-            .header p { color: #666; font-size: 12px; }
-            .content { margin-top: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f3f4f6; font-weight: 600; }
-            tr:nth-child(even) { background-color: #f9fafb; }
-            tr:hover { background-color: #f3f4f6; }
-            .text-right { text-align: right; }
-            .text-center { text-align: center; }
-            .font-medium { font-weight: 500; }
-            .font-semibold, .font-bold { font-weight: 600; }
-            .text-green-600 { color: #059669; }
-            .text-red-600 { color: #dc2626; }
-            .text-orange-600 { color: #ea580c; }
-            .text-purple-600 { color: #9333ea; }
-            .text-blue-600 { color: #2563eb; }
-            .bg-blue-50, .bg-green-50, .bg-orange-50, .bg-purple-50, .bg-red-50 { padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-            .bg-blue-50 { background-color: #eff6ff; border: 1px solid #bfdbfe; }
-            .bg-green-50 { background-color: #f0fdf4; border: 1px solid #bbf7d0; }
-            .bg-orange-50 { background-color: #fff7ed; border: 1px solid #fed7aa; }
-            .bg-purple-50 { background-color: #faf5ff; border: 1px solid #e9d5ff; }
-            .bg-red-50 { background-color: #fef2f2; border: 1px solid #fecaca; }
-            .bg-gray-50 { background-color: #f9fafb; }
-            .bg-gray-100 { background-color: #f3f4f6; }
-            tfoot { font-weight: 600; background-color: #f3f4f6; }
-            .grid { display: grid; gap: 15px; }
-            .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
-            .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
-            .grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
-            .space-y-4 > * + * { margin-top: 15px; }
-            .space-y-6 > * + * { margin-top: 20px; }
-            .rounded-lg { border-radius: 8px; }
-            .p-4 { padding: 15px; }
-            .text-sm { font-size: 12px; }
-            .text-xs { font-size: 10px; }
-            .text-lg { font-size: 16px; }
-            .text-xl { font-size: 18px; }
-            .text-2xl { font-size: 22px; }
-            .text-3xl { font-size: 26px; }
-            .mb-4 { margin-bottom: 15px; }
-            .font-mono { font-family: monospace; }
-            @media print {
-              body { padding: 0; }
-              .header { page-break-after: avoid; }
-              table { page-break-inside: auto; }
-              tr { page-break-inside: avoid; }
-            }
-            .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; text-align: center; font-size: 10px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>${reportName}</h1>
-            <p>Generated on ${new Date().toLocaleString()}</p>
-            <p>Period: ${dateRange}</p>
-          </div>
-          <div class="content">${content}</div>
-          <div class="footer">
-            <p>DigitalShop ERP System - Confidential Report</p>
-          </div>
-        </body>
-      </html>
-    `);
+      // Get optional heading before the table
+      let heading = '';
+      let prev = table.parentElement?.previousElementSibling;
+      if (prev && (prev.tagName === 'H3' || prev.tagName === 'H4')) {
+        heading = (prev.textContent || '').trim();
+      }
+      if (heading) {
+        doc.setFontSize(11);
+        doc.setTextColor(50, 50, 50);
+        doc.text(heading, 14, yPos);
+        yPos += 4;
+      }
 
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
+      // Parse thead
+      const headCells: string[] = [];
+      table.querySelectorAll('thead th').forEach((th) => {
+        headCells.push((th.textContent || '').trim());
+      });
+
+      // Parse tbody rows
+      const bodyRows: string[][] = [];
+      table.querySelectorAll('tbody tr').forEach((tr) => {
+        const row: string[] = [];
+        tr.querySelectorAll('td').forEach((td) => {
+          row.push((td.textContent || '').trim());
+        });
+        if (row.length > 0) bodyRows.push(row);
+      });
+
+      // Parse tfoot if present
+      const footRows: string[][] = [];
+      table.querySelectorAll('tfoot tr').forEach((tr) => {
+        const row: string[] = [];
+        tr.querySelectorAll('td').forEach((td) => {
+          row.push((td.textContent || '').trim());
+        });
+        if (row.length > 0) footRows.push(row);
+      });
+
+      if (headCells.length === 0 && bodyRows.length === 0) return;
+
+      // Detect right-aligned columns from the original th classes
+      const colStyles: Record<number, any> = {};
+      table.querySelectorAll('thead th').forEach((th, idx) => {
+        const cls = th.className || '';
+        if (cls.includes('text-right')) {
+          colStyles[idx] = { halign: 'right' };
+        } else if (cls.includes('text-center')) {
+          colStyles[idx] = { halign: 'center' };
+        }
+      });
+
+      autoTable(doc, {
+        startY: yPos,
+        head: headCells.length > 0 ? [headCells] : undefined,
+        body: bodyRows,
+        foot: footRows.length > 0 ? footRows : undefined,
+        theme: 'striped',
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { fontSize: 8 },
+        footStyles: { fillColor: [243, 244, 246], textColor: [30, 30, 30], fontStyle: 'bold', fontSize: 8 },
+        columnStyles: colStyles,
+        margin: { left: 14, right: 14 },
+        didDrawPage: () => {
+          // Footer on every page
+          doc.setFontSize(8);
+          doc.setTextColor(150, 150, 150);
+          doc.text(
+            'DigitalShop ERP System - Confidential Report',
+            pageWidth / 2,
+            doc.internal.pageSize.getHeight() - 7,
+            { align: 'center' }
+          );
+        },
+      });
+
+      yPos = (doc as any).lastAutoTable?.finalY + 8 || yPos + 20;
+    });
+
+    // ── Profit Flow / flex-based sections (no <table>) ──
+    // Extract flow rows from .flex.justify-between containers (P&L, Income vs Expense)
+    if (tables.length === 0 || selectedReport === 'profitLoss' || selectedReport === 'incomeVsExpense') {
+      const flexRows: string[][] = [];
+      container.querySelectorAll('.flex.justify-between').forEach((row) => {
+        const spans = row.querySelectorAll('span, p, div');
+        if (spans.length >= 2) {
+          const label = (spans[0].textContent || '').trim();
+          const value = (spans[spans.length - 1].textContent || '').trim();
+          if (label && value && label !== value) {
+            flexRows.push([label, value]);
+          }
+        }
+      });
+
+      // De-duplicate with summary pairs to avoid double entries
+      const existingLabels = new Set(summaryPairs.map(p => p.label));
+      const uniqueFlexRows = flexRows.filter(r => !existingLabels.has(r[0]));
+
+      if (uniqueFlexRows.length > 0 && tables.length === 0) {
+        autoTable(doc, {
+          startY: yPos,
+          head: [['Item', 'Amount']],
+          body: uniqueFlexRows,
+          theme: 'striped',
+          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+          bodyStyles: { fontSize: 9 },
+          columnStyles: { 0: { cellWidth: 140 }, 1: { halign: 'right' } },
+          margin: { left: 14, right: 14 },
+        });
+        yPos = (doc as any).lastAutoTable?.finalY + 8 || yPos + 20;
+      }
+    }
+
+    // ── Footer on last page ──
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(
+      'DigitalShop ERP System - Confidential Report',
+      pageWidth / 2,
+      doc.internal.pageSize.getHeight() - 7,
+      { align: 'center' }
+    );
+
+    // ── Download ──
+    const fileName = `${reportName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
   };
 
   const exportToCSV = () => {
