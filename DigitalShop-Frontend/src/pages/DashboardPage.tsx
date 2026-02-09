@@ -69,12 +69,15 @@ export function DashboardPage() {
     }
   };
 
-  const fmt = (v: number | undefined | null) => `UGX ${(v || 0).toLocaleString()}`;
-  const fmtShort = (v: number | undefined | null) => {
-    const n = v || 0;
+  const fmt = (v: number | string | undefined | null) => {
+    const n = typeof v === 'string' ? parseFloat(v) || 0 : (v || 0);
+    return `UGX ${Math.round(n).toLocaleString()}`;
+  };
+  const fmtShort = (v: number | string | undefined | null) => {
+    const n = typeof v === 'string' ? parseFloat(v) || 0 : (v || 0);
     if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
     if (n >= 1000) return `${(n / 1000).toFixed(0)}K`;
-    return n.toLocaleString();
+    return Math.round(n).toLocaleString();
   };
 
   const getGreeting = () => {
