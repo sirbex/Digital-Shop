@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import { logger } from '../../utils/logger.js';
 import * as systemRepository from './systemRepository.js';
+import { settingsCache, CacheKeys, cacheAside, invalidateSettings } from '../../utils/cache.js';
 
 // ============================================================================
 // Types (camelCase for API)
@@ -100,14 +101,16 @@ function camelToSnake(obj: Record<string, unknown>): Record<string, unknown> {
 // ============================================================================
 
 /**
- * Get system settings
+ * Get system settings (cached — 10 min TTL, invalidated on update)
  */
 export async function getSettings(pool: Pool): Promise<SystemSettings> {
-  const row = await systemRepository.getSettings(pool);
-  if (!row) {
-    throw new Error('System settings not found. Please run the migration script.');
-  }
-  return toSettings(row);
+  return cacheAside(settingsCache, CacheKeys.SYSTEM_SETTINGS, async () => {
+    const row = await systemRepository.getSettings(pool);
+    if (!row) {
+      throw new Error('System settings not found. Please run the migration script.');
+    }
+    return toSettings(row);
+  });
 }
 
 /**
@@ -122,6 +125,7 @@ export async function updateSettings(
 
   const snakeUpdates = camelToSnake(writableUpdates);
   const row = await systemRepository.updateSettings(pool, snakeUpdates);
+  invalidateSettings();
   return toSettings(row);
 }
 

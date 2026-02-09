@@ -16,6 +16,7 @@ router.patch('/settings', requireAdmin, systemController.updateSettings);
 
 // Database stats (Admin only)
 router.get('/stats', requireAdmin, systemController.getDatabaseStats);
+router.get('/cache-stats', requireAdmin, systemController.getCacheStatsHandler);
 
 // Reset operations (Admin only)
 router.get('/reset/preview', requireAdmin, systemController.getResetPreview);

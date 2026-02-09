@@ -1,5 +1,6 @@
 import { reportsRepository } from './reportsRepository.js';
 import { logger } from '../../utils/logger.js';
+import { reportCache, CacheKeys, cacheAside } from '../../utils/cache.js';
 
 export const reportsService = {
   // ==========================================================================
@@ -90,11 +91,13 @@ export const reportsService = {
   },
 
   /**
-   * Customer Aging Report
+   * Customer Aging Report (cached — 2 min TTL)
    */
   async getCustomerAgingReport() {
     try {
-      return await reportsRepository.getCustomerAgingReport();
+      return await cacheAside(reportCache, CacheKeys.CUSTOMER_AGING, async () => {
+        return await reportsRepository.getCustomerAgingReport();
+      }, 120);
     } catch (error: any) {
       logger.error('Failed to get customer aging report', { error });
       throw error;
@@ -106,11 +109,14 @@ export const reportsService = {
   // ==========================================================================
 
   /**
-   * Stock Valuation Report
+   * Stock Valuation Report (cached — 2 min TTL)
    */
   async getStockValuationReport(costingMethod?: string) {
     try {
-      return await reportsRepository.getStockValuationReport(costingMethod);
+      const cacheKey = `${CacheKeys.STOCK_VALUATION}:${costingMethod || 'default'}`;
+      return await cacheAside(reportCache, cacheKey, async () => {
+        return await reportsRepository.getStockValuationReport(costingMethod);
+      }, 120);
     } catch (error: any) {
       logger.error('Failed to get stock valuation report', { error });
       throw error;
@@ -263,11 +269,13 @@ export const reportsService = {
   // ==========================================================================
 
   /**
-   * Dashboard Summary
+   * Dashboard Summary (cached — 60s TTL)
    */
   async getDashboardSummary() {
     try {
-      return await reportsRepository.getDashboardSummary();
+      return await cacheAside(reportCache, CacheKeys.DASHBOARD_SUMMARY, async () => {
+        return await reportsRepository.getDashboardSummary();
+      });
     } catch (error: any) {
       logger.error('Failed to get dashboard summary', { error });
       throw error;
@@ -384,11 +392,13 @@ export const reportsService = {
   },
 
   /**
-   * Stock Reorder Report
+   * Stock Reorder Report (cached — 2 min TTL)
    */
   async getStockReorderReport() {
     try {
-      return await reportsRepository.getStockReorderReport();
+      return await cacheAside(reportCache, CacheKeys.STOCK_REORDER, async () => {
+        return await reportsRepository.getStockReorderReport();
+      }, 120);
     } catch (error: any) {
       logger.error('Failed to get stock reorder report', { error });
       throw error;

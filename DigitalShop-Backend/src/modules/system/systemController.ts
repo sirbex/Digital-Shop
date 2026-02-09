@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { pool } from '../../db/pool.js';
 import { logger } from '../../utils/logger.js';
 import * as systemService from './systemService.js';
+import { getCacheStats } from '../../utils/cache.js';
 
 // ============================================================================
 // GET /api/system/settings/public
@@ -191,6 +192,23 @@ export async function executeReset(req: Request, res: Response): Promise<void> {
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'System reset failed',
+    });
+  }
+}
+
+// ============================================================================
+// GET /api/system/cache-stats
+// Get in-memory cache statistics (Admin only)
+// ============================================================================
+export async function getCacheStatsHandler(req: Request, res: Response): Promise<void> {
+  try {
+    const stats = getCacheStats();
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    logger.error('Failed to get cache stats', { error });
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get cache stats',
     });
   }
 }
