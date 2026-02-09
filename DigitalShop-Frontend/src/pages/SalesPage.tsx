@@ -5,6 +5,7 @@ import { usePrint } from '../hooks/usePrint';
 import { RefundModal } from '../components/sales/RefundModal';
 import { VoidSaleButton } from '../components/sales/VoidSaleButton';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { z } from 'zod';
 import { CreateRefundSchema, VoidSaleSchema } from '@shared/zod/saleRefund';
@@ -116,6 +117,8 @@ function getDateRange(preset: DatePreset): { startDate: string; endDate: string 
 
 // Sale Details Modal Component
 function SaleDetailsModal({ sale, onClose, onPrint, showProfit = true }: { sale: any; onClose: () => void; onPrint: () => void; showProfit?: boolean }) {
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   if (!sale) return null;
 
   return (
@@ -198,14 +201,14 @@ function SaleDetailsModal({ sale, onClose, onPrint, showProfit = true }: { sale:
                             {item.sku && <div className="text-xs text-gray-500">SKU: {item.sku}</div>}
                           </td>
                           <td className="px-4 py-3 text-right">{item.quantity}</td>
-                          <td className="px-4 py-3 text-right">UGX {parseFloat(item.unitPrice).toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right">{cs} {parseFloat(item.unitPrice).toLocaleString()}</td>
                           {hasAnyDiscount && (
                             <td className="px-4 py-3 text-right text-red-600">
-                              {itemDiscount > 0 ? `- UGX ${itemDiscount.toLocaleString()}` : '-'}
+                              {itemDiscount > 0 ? `- ${cs} ${itemDiscount.toLocaleString()}` : '-'}
                             </td>
                           )}
                           <td className="px-4 py-3 text-right font-medium">
-                            UGX {parseFloat(String(itemTotal)).toLocaleString()}
+                            {cs} {parseFloat(String(itemTotal)).toLocaleString()}
                           </td>
                         </tr>
                       );
@@ -226,45 +229,45 @@ function SaleDetailsModal({ sale, onClose, onPrint, showProfit = true }: { sale:
           <div className="bg-gray-50 rounded-lg p-4 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Subtotal</span>
-              <span>UGX {parseFloat(sale.subtotal || sale.totalAmount).toLocaleString()}</span>
+              <span>{cs} {parseFloat(sale.subtotal || sale.totalAmount).toLocaleString()}</span>
             </div>
             {sale.discountAmount > 0 && (
               <div className="flex justify-between text-sm text-red-600">
                 <span>Discount</span>
-                <span>- UGX {parseFloat(sale.discountAmount).toLocaleString()}</span>
+                <span>- {cs} {parseFloat(sale.discountAmount).toLocaleString()}</span>
               </div>
             )}
             {sale.taxAmount > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Tax</span>
-                <span>UGX {parseFloat(sale.taxAmount).toLocaleString()}</span>
+                <span>{cs} {parseFloat(sale.taxAmount).toLocaleString()}</span>
               </div>
             )}
             <div className="flex justify-between text-lg font-bold pt-2 border-t">
               <span>Total</span>
-              <span className="text-blue-600">UGX {parseFloat(sale.totalAmount).toLocaleString()}</span>
+              <span className="text-blue-600">{cs} {parseFloat(sale.totalAmount).toLocaleString()}</span>
             </div>
             {/* Show Amount Paid and Balance for partial payments */}
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Amount Paid</span>
-              <span className="text-green-600">UGX {parseFloat(sale.amountPaid || sale.totalAmount).toLocaleString()}</span>
+              <span className="text-green-600">{cs} {parseFloat(sale.amountPaid || sale.totalAmount).toLocaleString()}</span>
             </div>
             {parseFloat(sale.amountPaid || sale.totalAmount) < parseFloat(sale.totalAmount) - 0.01 && (
               <div className="flex justify-between text-sm font-semibold bg-orange-100 -mx-4 px-4 py-2">
                 <span className="text-orange-700">⚠️ Balance Due (Invoice)</span>
-                <span className="text-orange-700">UGX {(parseFloat(sale.totalAmount) - parseFloat(sale.amountPaid || sale.totalAmount)).toLocaleString()}</span>
+                <span className="text-orange-700">{cs} {(parseFloat(sale.totalAmount) - parseFloat(sale.amountPaid || sale.totalAmount)).toLocaleString()}</span>
               </div>
             )}
             {parseFloat(sale.changeAmount || 0) > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Change Given</span>
-                <span>UGX {parseFloat(sale.changeAmount).toLocaleString()}</span>
+                <span>{cs} {parseFloat(sale.changeAmount).toLocaleString()}</span>
               </div>
             )}
             {showProfit && (
             <div className="flex justify-between text-sm text-green-600">
               <span>Profit</span>
-              <span>UGX {parseFloat(sale.profit || 0).toLocaleString()} ({(sale.profitMargin || 0).toFixed(1)}%)</span>
+              <span>{cs} {parseFloat(sale.profit || 0).toLocaleString()} ({(sale.profitMargin || 0).toFixed(1)}%)</span>
             </div>
             )}
           </div>
@@ -302,6 +305,8 @@ function SaleDetailsModal({ sale, onClose, onPrint, showProfit = true }: { sale:
 
 export function SalesPage() {
   const { user } = useAuth();
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const { printRef, handlePrint } = usePrint();
   const [_sales, setSales] = useState<any[]>([]);
   const [filteredSales, setFilteredSales] = useState<any[]>([]);
@@ -574,14 +579,14 @@ export function SalesPage() {
         <div className="bg-white p-4 rounded-lg shadow">
           <p className="text-sm text-gray-600">Revenue</p>
           <p className="text-2xl font-bold text-blue-600">
-            UGX {totals.total.toLocaleString()}
+            {cs} {totals.total.toLocaleString()}
           </p>
         </div>
         {perms.canViewProfit && (
         <div className="bg-white p-4 rounded-lg shadow">
           <p className="text-sm text-gray-600">Profit</p>
           <p className="text-2xl font-bold text-green-600">
-            UGX {totals.profit.toLocaleString()}
+            {cs} {totals.profit.toLocaleString()}
           </p>
         </div>
         )}
@@ -762,19 +767,19 @@ export function SalesPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-gray-900">
-                      UGX {parseFloat(sale.totalAmount).toLocaleString()}
+                      {cs} {parseFloat(sale.totalAmount).toLocaleString()}
                     </div>
                     {/* Show partial payment indicator */}
                     {parseFloat(sale.amountPaid || sale.totalAmount) < parseFloat(sale.totalAmount) - 0.01 && (
                       <div className="text-xs text-orange-600 font-medium">
-                        ⚠️ Paid: UGX {parseFloat(sale.amountPaid).toLocaleString()}
+                        ⚠️ Paid: {cs} {parseFloat(sale.amountPaid).toLocaleString()}
                       </div>
                     )}
                   </td>
                   {perms.canViewProfit && (
                   <td className="px-6 py-4">
                     <div className="text-sm text-green-600">
-                      UGX {parseFloat(sale.profit || 0).toLocaleString()}
+                      {cs} {parseFloat(sale.profit || 0).toLocaleString()}
                     </div>
                     <div className="text-xs text-gray-500">
                       {(parseFloat(sale.profitMargin || 0)).toFixed(1)}%

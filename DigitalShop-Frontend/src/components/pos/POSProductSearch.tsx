@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { inventoryApi } from '../../lib/api';
+import { useSettings } from '../../contexts/SettingsContext';
 import POSSearchBar from './POSSearchBar';
 import POSButton from './POSButton';
 import POSModal from './POSModal';
@@ -13,7 +14,7 @@ const formatDisplayDate = (dateString: string | null | undefined): string => {
   return dateString;
 };
 
-const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`;
+const formatCurrencyBase = (amount: number, symbol: string = 'UGX') => `${symbol} ${amount.toLocaleString()}`;
 
 interface ProductUom {
   uomId: string;
@@ -51,6 +52,8 @@ export interface POSProductSearchHandle {
 }
 
 const POSProductSearch = forwardRef<POSProductSearchHandle, POSProductSearchProps>(({ onSelect }, ref) => {
+  const { settings } = useSettings();
+  const formatCurrency = (amount: number) => formatCurrencyBase(amount, settings.currencySymbol);
   const [search, setSearch] = useState('');
   const [products, setProducts] = useState<ProductSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);

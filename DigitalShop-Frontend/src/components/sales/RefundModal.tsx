@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { CreateRefundSchema } from '@shared/zod/saleRefund';
 import Decimal from 'decimal.js';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface RefundModalProps {
   isOpen: boolean;
@@ -20,6 +21,8 @@ const refundReasons = [
 ];
 
 export function RefundModal({ isOpen, onClose, sale, onSubmit }: RefundModalProps) {
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const [refundType, setRefundType] = useState<'FULL' | 'PARTIAL'>('FULL');
   const [refundReason, setRefundReason] = useState('');
   const [returnToInventory, setReturnToInventory] = useState(true);
@@ -126,7 +129,7 @@ export function RefundModal({ isOpen, onClose, sale, onSubmit }: RefundModalProp
         <div className="mb-4 p-3 bg-gray-50 rounded">
           <p className="text-sm"><strong>Sale #:</strong> {sale.saleNumber}</p>
           <p className="text-sm"><strong>Customer:</strong> {sale.customerName || 'Walk-in'}</p>
-          <p className="text-sm"><strong>Total Amount:</strong> UGX {parseFloat(sale.totalAmount).toLocaleString()}</p>
+          <p className="text-sm"><strong>Total Amount:</strong> {cs} {parseFloat(sale.totalAmount).toLocaleString()}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -237,7 +240,7 @@ export function RefundModal({ isOpen, onClose, sale, onSubmit }: RefundModalProp
                   <tr>
                     <td colSpan={4} className="px-3 py-2 text-right">Total Refund:</td>
                     <td className="px-3 py-2 text-right">
-                      UGX {calculateTotalRefund().toLocaleString()}
+                      {cs} {calculateTotalRefund().toLocaleString()}
                     </td>
                   </tr>
                 </tfoot>
@@ -289,7 +292,7 @@ export function RefundModal({ isOpen, onClose, sale, onSubmit }: RefundModalProp
               disabled={isSubmitting || calculateTotalRefund() === 0}
               className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
             >
-              {isSubmitting ? 'Processing...' : `Process Refund (UGX ${calculateTotalRefund().toLocaleString()})`}
+              {isSubmitting ? 'Processing...' : `Process Refund (${cs} ${calculateTotalRefund().toLocaleString()})`}
             </button>
           </div>
         </form>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Clock, X } from 'lucide-react';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface HoldCartDialogProps {
     isOpen: boolean;
@@ -20,6 +21,8 @@ export function HoldCartDialog({
     itemCount,
     totalAmount,
 }: HoldCartDialogProps) {
+    const { settings } = useSettings();
+    const cs = settings.currencySymbol;
     const [reason, setReason] = useState('');
     const [notes, setNotes] = useState('');
 
@@ -65,7 +68,7 @@ export function HoldCartDialog({
                         <div className="flex justify-between text-sm">
                             <span className="text-gray-600">Total Amount:</span>
                             <span className="font-medium">
-                                UGX {totalAmount.toLocaleString()} 
+                                {cs} {totalAmount.toLocaleString()} 
                             </span>
                         </div>
                     </div>

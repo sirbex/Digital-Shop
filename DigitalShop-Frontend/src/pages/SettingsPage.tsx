@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { systemApi, rolesApi } from '../lib/api';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '../hooks/usePermissions';
+import { useSettings } from '../contexts/SettingsContext';
 import {
   Settings,
   Building2,
@@ -580,6 +581,7 @@ function RoleManagementTab() {
 
 function SystemSettingsTab() {
   const queryClient = useQueryClient();
+  const { refreshSettings } = useSettings();
   const [activeSection, setActiveSection] = useState<'general' | 'tax' | 'receipt' | 'alerts'>('general');
   const [formData, setFormData] = useState<Partial<SystemSettings>>({});
   const [hasChanges, setHasChanges] = useState(false);
@@ -617,6 +619,7 @@ function SystemSettingsTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['system-settings'] });
+      refreshSettings();
       setHasChanges(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);

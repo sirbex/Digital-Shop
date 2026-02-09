@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { salesApi, inventoryApi, reportsApi } from '../lib/api';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface DashboardData {
   today: { todaySales: number; todayRevenue: number; todayProfit: number };
@@ -14,6 +15,7 @@ interface DashboardData {
 export function DashboardPage() {
   const perms = usePermissions();
   const { user } = useAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [topProducts, setTopProducts] = useState<any[]>([]);
@@ -71,7 +73,7 @@ export function DashboardPage() {
 
   const fmt = (v: number | string | undefined | null) => {
     const n = typeof v === 'string' ? parseFloat(v) || 0 : (v || 0);
-    return `UGX ${Math.round(n).toLocaleString()}`;
+    return `${settings.currencySymbol} ${Math.round(n).toLocaleString()}`;
   };
   const fmtShort = (v: number | string | undefined | null) => {
     const n = typeof v === 'string' ? parseFloat(v) || 0 : (v || 0);

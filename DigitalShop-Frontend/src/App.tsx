@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { lazy, Suspense } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
+import { SettingsProvider } from './contexts/SettingsContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PermissionGate } from './components/PermissionGate';
 import { DashboardLayout } from './components/DashboardLayout';
@@ -46,6 +47,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <SettingsProvider>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Suspense fallback={<PageLoader />}>
             <Routes>
@@ -79,6 +81,7 @@ function App() {
             </Routes>
           </Suspense>
         </BrowserRouter>
+        </SettingsProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

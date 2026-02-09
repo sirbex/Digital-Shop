@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { invoicesApi } from '../../lib/api';
+import { useSettings } from '../../contexts/SettingsContext';
 import { Button } from '../ui/button';
 import {
   Dialog,
@@ -42,6 +43,8 @@ export default function RecordPaymentModal({
   onClose,
   onPaymentRecorded,
 }: RecordPaymentModalProps) {
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const [formData, setFormData] = useState({
     paymentDate: new Date().toISOString().split('T')[0],
     paymentMethod: 'CASH',
@@ -100,12 +103,16 @@ export default function RecordPaymentModal({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-UG', {
-      style: 'currency',
-      currency: 'UGX',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+    try {
+      return new Intl.NumberFormat('en-UG', {
+        style: 'currency',
+        currency: settings.currencyCode || 'UGX',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(amount);
+    } catch {
+      return `${cs} ${amount.toLocaleString()}`;
+    }
   };
 
   const calculateChange = () => {
@@ -179,7 +186,7 @@ export default function RecordPaymentModal({
 
               {/* Payment Amount */}
               <div className="space-y-2">
-                <Label htmlFor="amount">Payment Amount (UGX)</Label>
+                <Label htmlFor="amount">Payment Amount ({cs})</Label>
                 <Input
                   id="amount"
                   type="number"

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { invoicesApi } from '../../lib/api';
+import { useSettings } from '../../contexts/SettingsContext';
 import {
   Dialog,
   DialogContent,
@@ -75,6 +76,7 @@ export default function InvoiceDetailModal({
   onClose,
   onRecordPayment,
 }: InvoiceDetailModalProps) {
+  const { settings } = useSettings();
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
   const [payments, setPayments] = useState<InvoicePayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -105,12 +107,16 @@ export default function InvoiceDetailModal({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-UG', {
-      style: 'currency',
-      currency: 'UGX',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+    try {
+      return new Intl.NumberFormat('en-UG', {
+        style: 'currency',
+        currency: settings.currencyCode || 'UGX',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(amount);
+    } catch {
+      return `${settings.currencySymbol} ${amount.toLocaleString()}`;
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -162,7 +168,7 @@ export default function InvoiceDetailModal({
   };
 
   const formatCurrencyPlain = (amount: number) => {
-    return `UGX ${Math.abs(amount).toLocaleString('en-UG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    return `${settings.currencySymbol} ${Math.abs(amount).toLocaleString('en-UG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
   const getStatusLabel = (status: string) => {
@@ -181,7 +187,7 @@ export default function InvoiceDetailModal({
     // Header
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text('DigitalShop', 14, 20);
+    doc.text(settings.businessName, 14, 20);
 
     doc.setFontSize(14);
     doc.text('INVOICE', 196, 20, { align: 'right' });

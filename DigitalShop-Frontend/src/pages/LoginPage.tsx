@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { LoginSchema, type Login } from '@shared/zod/user';
 import { z } from 'zod';
 
@@ -10,8 +11,8 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
   const { login } = useAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,7 +52,7 @@ export function LoginPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">DigitalShop</h1>
+            <h1 className="text-2xl font-bold text-white tracking-tight">{settings.businessName}</h1>
             <p className="text-sm text-slate-400 mt-1">Sign in to your account</p>
           </div>
 
@@ -148,7 +149,7 @@ export function LoginPage() {
           </form>
 
           <p className="text-center text-xs text-slate-500 mt-8">
-            &copy; {new Date().getFullYear()} DigitalShop ERP System
+            &copy; {new Date().getFullYear()} {settings.businessName} ERP System
           </p>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { api } from '../lib/api';
 import { usePermissions } from '../hooks/usePermissions';
+import { useSettings } from '../contexts/SettingsContext';
 import { SessionOpenModal } from '../components/cash-register/SessionOpenModal';
 import { SessionCloseModal } from '../components/cash-register/SessionCloseModal';
 import { CashMovementForm } from '../components/cash-register/CashMovementForm';
@@ -9,6 +10,8 @@ import { OpenSessionSchema, CloseSessionSchema, CreateCashMovementSchema } from 
 
 export function CashRegisterPage() {
   const perms = usePermissions();
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const [currentSession, setCurrentSession] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [cashMovements, setCashMovements] = useState<any[]>([]);
@@ -172,25 +175,25 @@ export function CashRegisterPage() {
             <div className="bg-white p-4 rounded-lg shadow">
               <p className="text-sm text-gray-600">Opening Float</p>
               <p className="text-2xl font-bold text-gray-900">
-                UGX {currentSession.openingFloat.toLocaleString()}
+                {cs} {currentSession.openingFloat.toLocaleString()}
               </p>
             </div>
             <div className="bg-white p-4 rounded-lg shadow">
               <p className="text-sm text-gray-600">Cash Sales</p>
               <p className="text-2xl font-bold text-green-600">
-                UGX {currentSession.totalCashSales.toLocaleString()}
+                {cs} {currentSession.totalCashSales.toLocaleString()}
               </p>
             </div>
             <div className="bg-white p-4 rounded-lg shadow">
               <p className="text-sm text-gray-600">Card Sales</p>
               <p className="text-2xl font-bold text-blue-600">
-                UGX {currentSession.totalCardSales.toLocaleString()}
+                {cs} {currentSession.totalCardSales.toLocaleString()}
               </p>
             </div>
             <div className="bg-white p-4 rounded-lg shadow">
               <p className="text-sm text-gray-600">Expected Cash</p>
               <p className="text-2xl font-bold text-gray-900">
-                UGX {(currentSession.openingFloat + currentSession.totalCashSales).toLocaleString()}
+                {cs} {(currentSession.openingFloat + currentSession.totalCashSales).toLocaleString()}
               </p>
             </div>
           </div>
@@ -236,7 +239,7 @@ export function CashRegisterPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm font-medium">
-                          {movement.type === 'CASH_IN' ? '+' : '-'}UGX {movement.amount.toLocaleString()}
+                          {movement.type === 'CASH_IN' ? '+' : '-'}{cs} {movement.amount.toLocaleString()}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
                           {movement.reason}
@@ -306,11 +309,11 @@ export function CashRegisterPage() {
                       {session.userName || 'Unknown'}
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      UGX {session.openingFloat.toLocaleString()}
+                      {cs} {session.openingFloat.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 text-sm">
                       {session.closingCash !== null 
-                        ? `UGX ${session.closingCash.toLocaleString()}`
+                        ? `${cs} ${session.closingCash.toLocaleString()}`
                         : '-'}
                     </td>
                     <td className="px-6 py-4 text-sm">

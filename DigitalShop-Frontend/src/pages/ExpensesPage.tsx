@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { expensesApi } from '../lib/api';
 import { usePermissions } from '../hooks/usePermissions';
+import { useSettings } from '../contexts/SettingsContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -61,17 +62,23 @@ const paymentMethods = [
   { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
 ];
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-UG', {
-    style: 'currency',
-    currency: 'UGX',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+const formatCurrencyWithCode = (amount: number, currencyCode: string = 'UGX') => {
+  try {
+    return new Intl.NumberFormat('en-UG', {
+      style: 'currency',
+      currency: currencyCode,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${currencyCode} ${amount.toLocaleString()}`;
+  }
 };
 
 export default function ExpensesPage() {
   const perms = usePermissions();
+  const { settings } = useSettings();
+  const formatCurrency = (amount: number) => formatCurrencyWithCode(amount, settings.currencyCode);
   const queryClient = useQueryClient();
   const [showFilters, setShowFilters] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);

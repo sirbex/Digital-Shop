@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { customersApi, invoicesApi } from '../lib/api';
+import { useSettings } from '../contexts/SettingsContext';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -81,6 +82,7 @@ export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const perms = usePermissions();
+  const { settings } = useSettings();
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -234,12 +236,16 @@ export default function CustomerDetailPage() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-UG', {
-      style: 'currency',
-      currency: 'UGX',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+    try {
+      return new Intl.NumberFormat('en-UG', {
+        style: 'currency',
+        currency: settings.currencyCode || 'UGX',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(amount);
+    } catch {
+      return `${settings.currencySymbol} ${amount.toLocaleString()}`;
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -252,7 +258,7 @@ export default function CustomerDetailPage() {
 
   // Format currency as plain number for PDF (no HTML entities)
   const formatCurrencyPlain = (amount: number) => {
-    return `UGX ${Math.abs(amount).toLocaleString('en-UG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    return `${settings.currencySymbol} ${Math.abs(amount).toLocaleString('en-UG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
   /**
@@ -266,7 +272,7 @@ export default function CustomerDetailPage() {
     // Header
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text('DigitalShop', 14, 20);
+    doc.text(settings.businessName, 14, 20);
 
     doc.setFontSize(14);
     doc.text('Customer Statement', 14, 30);
@@ -363,7 +369,7 @@ export default function CustomerDetailPage() {
     doc.setFontSize(8);
     doc.setTextColor(128, 128, 128);
     doc.text(`Generated on ${new Date().toLocaleString('en-UG')}`, 14, pageHeight - 10);
-    doc.text('DigitalShop — Customer Statement', 196, pageHeight - 10, { align: 'right' });
+    doc.text(`${settings.businessName} — Customer Statement`, 196, pageHeight - 10, { align: 'right' });
 
     // Save/download
     const safeName = customer.name.replace(/[^a-zA-Z0-9]/g, '_');
@@ -449,7 +455,7 @@ export default function CustomerDetailPage() {
         <body>
           <div class="header">
             <div>
-              <h1>DigitalShop</h1>
+              <h1>${settings.businessName}</h1>
               <h2>Customer Statement</h2>
             </div>
             <div class="meta-right">
@@ -492,7 +498,7 @@ export default function CustomerDetailPage() {
             </table>
           `}
           <div class="footer">
-            <p>Generated on ${new Date().toLocaleString('en-UG')} — DigitalShop Customer Statement</p>
+            <p>Generated on ${new Date().toLocaleString('en-UG')} — ${settings.businessName} Customer Statement</p>
           </div>
         </body>
       </html>

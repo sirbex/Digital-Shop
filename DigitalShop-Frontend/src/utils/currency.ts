@@ -4,13 +4,15 @@ import Decimal from 'decimal.js';
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
 /**
- * Format a number as UGX currency
+ * Format a number as currency.
+ * Accepts an optional currency symbol (defaults to 'UGX').
+ * For React components, prefer useSettings().formatCurrency which auto-reads settings.
  */
-export const formatCurrency = (amount: number | string | null | undefined): string => {
-  if (amount === null || amount === undefined) return 'UGX 0';
+export const formatCurrency = (amount: number | string | null | undefined, currencySymbol: string = 'UGX'): string => {
+  if (amount === null || amount === undefined) return `${currencySymbol} 0`;
   
   const d = new Decimal(amount || 0);
-  return `UGX ${d.toNumber().toLocaleString('en-UG', {
+  return `${currencySymbol} ${d.toNumber().toLocaleString('en-UG', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })}`;

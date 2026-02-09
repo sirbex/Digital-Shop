@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { CreateManualGoodsReceiptSchema } from '@shared/zod/goodsReceipt';
 import { productsApi, api } from '../../lib/api';
+import { useSettings } from '../../contexts/SettingsContext';
 
 // Local interface for form items to avoid Zod inference issues
 interface GRFormItem {
@@ -21,6 +22,8 @@ interface GRFormProps {
 }
 
 export function GRForm({ isOpen, onClose, onSubmit, purchaseOrder }: GRFormProps) {
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [supplierId, setSupplierId] = useState('');
@@ -333,7 +336,7 @@ export function GRForm({ isOpen, onClose, onSubmit, purchaseOrder }: GRFormProps
 
             {items.length > 0 && (
               <div className="mt-2 text-right text-lg font-bold">
-                Total: UGX {calculateTotal().toLocaleString()}
+                Total: {cs} {calculateTotal().toLocaleString()}
               </div>
             )}
           </div>

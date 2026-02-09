@@ -7,6 +7,9 @@ const router = Router();
 // All system routes require authentication
 router.use(authenticate);
 
+// Public settings (read-only, any authenticated user)
+router.get('/settings/public', systemController.getPublicSettings);
+
 // Settings routes (Admin only)
 router.get('/settings', requireAdmin, systemController.getSettings);
 router.patch('/settings', requireAdmin, systemController.updateSettings);

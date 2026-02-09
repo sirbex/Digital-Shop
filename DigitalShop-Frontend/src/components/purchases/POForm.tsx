@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { CreatePurchaseOrderSchema, PurchaseOrderItem } from '@shared/zod/purchaseOrder';
 import { productsApi, api } from '../../lib/api';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface POFormProps {
   isOpen: boolean;
@@ -10,6 +11,8 @@ interface POFormProps {
 }
 
 export function POForm({ isOpen, onClose, onSubmit }: POFormProps) {
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [supplierId, setSupplierId] = useState('');
@@ -275,7 +278,7 @@ export function POForm({ isOpen, onClose, onSubmit }: POFormProps) {
 
             {items.length > 0 && (
               <div className="mt-2 text-right text-lg font-bold">
-                Total: UGX {calculateTotal().toLocaleString()}
+                Total: {cs} {calculateTotal().toLocaleString()}
               </div>
             )}
           </div>

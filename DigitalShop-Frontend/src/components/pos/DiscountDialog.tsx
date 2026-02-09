@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface DiscountDialogProps {
   isOpen: boolean;
@@ -33,6 +34,8 @@ export default function DiscountDialog({
   lineItemIndex,
   userRole,
 }: DiscountDialogProps) {
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const [discountType, setDiscountType] = useState<'PERCENTAGE' | 'FIXED_AMOUNT'>('PERCENTAGE');
   const [discountValue, setDiscountValue] = useState('');
   const [reason, setReason] = useState('');
@@ -168,7 +171,7 @@ export default function DiscountDialog({
                 : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                 }`}
             >
-              Fixed Amount (UGX)
+              Fixed Amount ({cs})
             </button>
           </div>
         </div>
@@ -222,15 +225,15 @@ export default function DiscountDialog({
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">Original Amount:</span>
-              <span className="font-medium">UGX {originalAmount.toLocaleString()}</span>
+              <span className="font-medium">{cs} {originalAmount.toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-red-600">
               <span>Discount ({discountPercentage.toFixed(1)}%):</span>
-              <span className="font-medium">-UGX {discountAmount.toLocaleString()}</span>
+              <span className="font-medium">-{cs} {discountAmount.toLocaleString()}</span>
             </div>
             <div className="flex justify-between pt-2 border-t border-gray-200">
               <span className="font-semibold text-gray-900">Final Amount:</span>
-              <span className="font-bold text-green-600">UGX {finalAmount.toLocaleString()}</span>
+              <span className="font-bold text-green-600">{cs} {finalAmount.toLocaleString()}</span>
             </div>
           </div>
         </div>

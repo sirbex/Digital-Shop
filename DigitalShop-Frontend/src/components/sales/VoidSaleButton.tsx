@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { z } from 'zod';
 import { VoidSaleSchema } from '@shared/zod/saleRefund';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface VoidSaleButtonProps {
   sale: any;
@@ -17,6 +18,8 @@ const voidReasons = [
 ];
 
 export function VoidSaleButton({ sale, onVoid }: VoidSaleButtonProps) {
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [voidReason, setVoidReason] = useState('');
   const [notes, setNotes] = useState('');
@@ -95,7 +98,7 @@ export function VoidSaleButton({ sale, onVoid }: VoidSaleButtonProps) {
             <div className="mb-4 p-3 bg-gray-50 rounded">
               <p className="text-sm"><strong>Sale #:</strong> {sale.saleNumber}</p>
               <p className="text-sm"><strong>Customer:</strong> {sale.customerName || 'Walk-in'}</p>
-              <p className="text-sm"><strong>Amount:</strong> UGX {parseFloat(sale.totalAmount).toLocaleString()}</p>
+              <p className="text-sm"><strong>Amount:</strong> {cs} {parseFloat(sale.totalAmount).toLocaleString()}</p>
             </div>
 
             <form onSubmit={handleVoid} className="space-y-4">

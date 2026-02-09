@@ -3,11 +3,14 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { reportsApi } from '../lib/api';
 import { usePermissions } from '../hooks/usePermissions';
+import { useSettings } from '../contexts/SettingsContext';
 
 type ReportType = 'dashboard' | 'dailySales' | 'salesDetails' | 'salesSummary' | 'salesByHour' | 'salesByCashier' | 'salesTrends' | 'paymentMethods' | 'inventory' | 'stockValuation' | 'outOfStock' | 'inventoryMovements' | 'slowMoving' | 'fastMoving' | 'expiringStock' | 'stockReorder' | 'inventoryTurnover' | 'profitLoss' | 'customerAging' | 'customerAccounts' | 'bestSelling' | 'invoices' | 'voided' | 'refunds' | 'discounts' | 'discountsByCashier' | 'paymentsReceived' | 'dailyCollections' | 'expenseSummary' | 'expenseByCategory' | 'incomeVsExpense';
 
 export function ReportsPage() {
   const perms = usePermissions();
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const [selectedReport, setSelectedReport] = useState<ReportType>('dashboard');
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -307,7 +310,7 @@ export function ReportsPage() {
       const ar = parseFloat(reportData.accountsReceivable || 0);
       const iv = parseFloat(reportData.inventoryValue || 0);
 
-      const fmt = (v: number) => `UGX ${Math.abs(v).toLocaleString(undefined, { minimumFractionDigits: 0 })}`;
+const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { minimumFractionDigits: 0 })}`;
       const fmtNeg = (v: number) => `(${fmt(v)})`;
 
       // Build P&L rows: [label, amount, style]
@@ -440,7 +443,7 @@ export function ReportsPage() {
       // Footer
       plDoc.setFontSize(7);
       plDoc.setTextColor(140, 140, 140);
-      plDoc.text('DigitalShop ERP System', m, ph - 8);
+      plDoc.text(`${settings.businessName} ERP System`, m, ph - 8);
       plDoc.text('Confidential', pw / 2, ph - 8, { align: 'center' });
       plDoc.text('Page 1', pw - m, ph - 8, { align: 'right' });
       plDoc.setDrawColor(200, 200, 200);
@@ -477,7 +480,7 @@ export function ReportsPage() {
       // Footer
       doc.setFontSize(7);
       doc.setTextColor(140, 140, 140);
-      doc.text('DigitalShop ERP System', margin, pageHeight - 8);
+      doc.text(`${settings.businessName} ERP System`, margin, pageHeight - 8);
       doc.text(`Page ${pageNum}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
       doc.text('Confidential', pageWidth / 2, pageHeight - 8, { align: 'center' });
       // Footer line
@@ -786,7 +789,7 @@ export function ReportsPage() {
 
   const formatCurrency = (value: any) => {
     const num = parseFloat(value || 0);
-    return `UGX ${num.toLocaleString()}`;
+    return `${cs} ${num.toLocaleString()}`;
   };
 
   const formatPercent = (value: any) => {
@@ -1748,7 +1751,7 @@ export function ReportsPage() {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-sm text-gray-600">Total Discounts Given</p>
-              <p className="text-2xl font-bold text-orange-600">UGX {totalDiscount.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-orange-600">{cs} {totalDiscount.toLocaleString()}</p>
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-600">Transactions with Discounts</p>
@@ -1803,7 +1806,7 @@ export function ReportsPage() {
             <tfoot className="bg-gray-100 font-semibold">
               <tr>
                 <td colSpan={5} className="px-3 py-2 text-right">Total Discounts:</td>
-                <td className="px-3 py-2 text-right text-orange-600">UGX {totalDiscount.toLocaleString()}</td>
+                <td className="px-3 py-2 text-right text-orange-600">{cs} {totalDiscount.toLocaleString()}</td>
                 <td colSpan={2}></td>
               </tr>
             </tfoot>
@@ -1829,7 +1832,7 @@ export function ReportsPage() {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-sm text-gray-600">Total Discounts by All Cashiers</p>
-              <p className="text-2xl font-bold text-purple-600">UGX {totalDiscount.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-purple-600">{cs} {totalDiscount.toLocaleString()}</p>
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-600">Total Sales with Discounts</p>
@@ -1867,7 +1870,7 @@ export function ReportsPage() {
               <tr>
                 <td className="px-3 py-2">Total</td>
                 <td className="px-3 py-2 text-right">{totalSales}</td>
-                <td className="px-3 py-2 text-right text-purple-600">UGX {totalDiscount.toLocaleString()}</td>
+                <td className="px-3 py-2 text-right text-purple-600">{cs} {totalDiscount.toLocaleString()}</td>
                 <td colSpan={3}></td>
               </tr>
             </tfoot>
@@ -1891,7 +1894,7 @@ export function ReportsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-gray-600">Total Collected</p>
-            <p className="text-lg sm:text-2xl font-bold text-green-600">UGX {(summary?.totalAmount || 0).toLocaleString()}</p>
+            <p className="text-lg sm:text-2xl font-bold text-green-600">{cs} {(summary?.totalAmount || 0).toLocaleString()}</p>
           </div>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-gray-600">Number of Payments</p>
@@ -1899,11 +1902,11 @@ export function ReportsPage() {
           </div>
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-gray-600">Cash Received</p>
-            <p className="text-lg sm:text-2xl font-bold text-purple-600">UGX {(summary?.cashAmount || 0).toLocaleString()}</p>
+            <p className="text-lg sm:text-2xl font-bold text-purple-600">{cs} {(summary?.cashAmount || 0).toLocaleString()}</p>
           </div>
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-gray-600">Mobile Money</p>
-            <p className="text-lg sm:text-2xl font-bold text-orange-600">UGX {(summary?.mobileMoneyAmount || 0).toLocaleString()}</p>
+            <p className="text-lg sm:text-2xl font-bold text-orange-600">{cs} {(summary?.mobileMoneyAmount || 0).toLocaleString()}</p>
           </div>
         </div>
 
@@ -1938,7 +1941,7 @@ export function ReportsPage() {
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right font-medium text-green-600">
-                    UGX {parseFloat(payment.amount || 0).toLocaleString()}
+                    {cs} {parseFloat(payment.amount || 0).toLocaleString()}
                   </td>
                 </tr>
               ))}
@@ -1946,7 +1949,7 @@ export function ReportsPage() {
             <tfoot className="bg-gray-100 font-semibold">
               <tr>
                 <td colSpan={5} className="px-3 py-2">Total</td>
-                <td className="px-3 py-2 text-right text-green-600">UGX {(summary?.totalAmount || 0).toLocaleString()}</td>
+                <td className="px-3 py-2 text-right text-green-600">{cs} {(summary?.totalAmount || 0).toLocaleString()}</td>
               </tr>
             </tfoot>
           </table>
@@ -1967,7 +1970,7 @@ export function ReportsPage() {
       <div className="space-y-4">
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <p className="text-sm text-gray-600">Total Collections</p>
-          <p className="text-2xl font-bold text-green-600">UGX {totalCollections.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-green-600">{cs} {totalCollections.toLocaleString()}</p>
         </div>
 
         <div className="overflow-x-auto -mx-3 sm:mx-0">
@@ -2006,7 +2009,7 @@ export function ReportsPage() {
                 <td className="px-3 py-2 text-right">{reportData.reduce((sum: number, r: any) => sum + parseFloat(r.mobileMoneyCollected || 0), 0).toLocaleString()}</td>
                 <td className="px-3 py-2 text-right">{reportData.reduce((sum: number, r: any) => sum + parseFloat(r.cardCollected || 0), 0).toLocaleString()}</td>
                 <td className="px-3 py-2 text-right">{reportData.reduce((sum: number, r: any) => sum + parseFloat(r.bankTransferCollected || 0), 0).toLocaleString()}</td>
-                <td className="px-3 py-2 text-right text-green-600">UGX {totalCollections.toLocaleString()}</td>
+                <td className="px-3 py-2 text-right text-green-600">{cs} {totalCollections.toLocaleString()}</td>
               </tr>
             </tfoot>
           </table>
@@ -2029,7 +2032,7 @@ export function ReportsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-gray-600">Total Expenses</p>
-            <p className="text-lg sm:text-2xl font-bold text-red-600">UGX {(summary?.totalAmount || 0).toLocaleString()}</p>
+            <p className="text-lg sm:text-2xl font-bold text-red-600">{cs} {(summary?.totalAmount || 0).toLocaleString()}</p>
           </div>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-gray-600"># of Expenses</p>
@@ -2037,11 +2040,11 @@ export function ReportsPage() {
           </div>
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-gray-600">Average Expense</p>
-            <p className="text-lg sm:text-2xl font-bold text-purple-600">UGX {(summary?.avgAmount || 0).toLocaleString()}</p>
+            <p className="text-lg sm:text-2xl font-bold text-purple-600">{cs} {(summary?.avgAmount || 0).toLocaleString()}</p>
           </div>
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-gray-600">Largest Expense</p>
-            <p className="text-lg sm:text-2xl font-bold text-orange-600">UGX {(summary?.maxAmount || 0).toLocaleString()}</p>
+            <p className="text-lg sm:text-2xl font-bold text-orange-600">{cs} {(summary?.maxAmount || 0).toLocaleString()}</p>
           </div>
         </div>
 
@@ -2063,7 +2066,7 @@ export function ReportsPage() {
                     <td className="px-3 py-2 font-medium">{cat.category}</td>
                     <td className="px-3 py-2 text-right">{cat.expenseCount}</td>
                     <td className="px-3 py-2 text-right text-red-600 font-medium">
-                      UGX {parseFloat(cat.totalAmount || 0).toLocaleString()}
+                      {cs} {parseFloat(cat.totalAmount || 0).toLocaleString()}
                     </td>
                     <td className="px-3 py-2 text-right">{parseFloat(cat.percentage || 0).toFixed(1)}%</td>
                   </tr>
@@ -2088,7 +2091,7 @@ export function ReportsPage() {
       <div className="space-y-4">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-sm text-gray-600">Total Expenses</p>
-          <p className="text-2xl font-bold text-red-600">UGX {totalExpenses.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-red-600">{cs} {totalExpenses.toLocaleString()}</p>
         </div>
 
         <div className="overflow-x-auto -mx-3 sm:mx-0">
@@ -2108,10 +2111,10 @@ export function ReportsPage() {
                   <td className="px-3 py-2 font-medium">{row.category}</td>
                   <td className="px-3 py-2 text-right">{row.expenseCount}</td>
                   <td className="px-3 py-2 text-right text-red-600 font-medium">
-                    UGX {parseFloat(row.totalAmount || 0).toLocaleString()}
+                    {cs} {parseFloat(row.totalAmount || 0).toLocaleString()}
                   </td>
                   <td className="px-3 py-2 text-right">
-                    UGX {parseFloat(row.avgAmount || 0).toLocaleString()}
+                    {cs} {parseFloat(row.avgAmount || 0).toLocaleString()}
                   </td>
                   <td className="px-3 py-2 text-right">
                     {((parseFloat(row.totalAmount || 0) / totalExpenses) * 100).toFixed(1)}%
@@ -2123,7 +2126,7 @@ export function ReportsPage() {
               <tr>
                 <td className="px-3 py-2">Total</td>
                 <td className="px-3 py-2 text-right">{reportData.reduce((sum: number, r: any) => sum + parseInt(r.expenseCount || 0), 0)}</td>
-                <td className="px-3 py-2 text-right text-red-600">UGX {totalExpenses.toLocaleString()}</td>
+                <td className="px-3 py-2 text-right text-red-600">{cs} {totalExpenses.toLocaleString()}</td>
                 <td colSpan={2}></td>
               </tr>
             </tfoot>
@@ -2934,3 +2937,4 @@ export function ReportsPage() {
     </div>
   );
 }
+

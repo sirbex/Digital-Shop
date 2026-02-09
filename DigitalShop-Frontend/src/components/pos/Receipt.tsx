@@ -2,6 +2,7 @@
 // External CSS doesn't reliably render in print contexts (required for thermal printers)
 import { forwardRef } from 'react';
 import Decimal from 'decimal.js';
+import { useSettings } from '../../contexts/SettingsContext';
 
 /**
  * Professional Receipt Component
@@ -81,17 +82,25 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
       cashierName,
       balanceDue,
       payments,
-      companyInfo = {
-        name: 'BRIGS TECHNOLOGY CONSULT LTD',
-        address: 'William Street, Plot 27B, Kampala\nP.O. Box 1654, Uganda',
-        phone: '+256 773 452 271 | +256 393 194 020',
-        email: 'brigstechnologies@gmail.com',
-        tin: '1000348899', // URA TIN format
-        vatRegistered: true,
-      },
+      companyInfo: companyInfoProp,
     },
     ref
   ) => {
+    const { settings } = useSettings();
+    
+    // Merge company info: prop overrides > settings > hardcoded defaults
+    const companyInfo = companyInfoProp || {
+      name: settings.businessName || 'DigitalShop',
+      address: settings.businessAddress || '',
+      phone: settings.businessPhone || '',
+      email: settings.businessEmail || '',
+      tin: settings.taxNumber || '',
+      vatRegistered: settings.taxEnabled,
+    };
+
+    // Currency symbol from settings
+    const cs = settings.currencySymbol || 'UGX';
+
     // Precision currency formatter using Decimal.js
     const formatCurrency = (amount: number): string => {
       const decimal = new Decimal(amount);
@@ -381,7 +390,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                   <strong>SUBTOTAL:</strong>
                 </td>
                 <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold', width: '35%' }}>
-                  UGX {formatCurrency(subtotal)}
+                  {cs} {formatCurrency(subtotal)}
                 </td>
               </tr>
 
@@ -392,7 +401,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                     <strong>DISCOUNT:</strong>
                   </td>
                   <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold', color: '#c00' }}>
-                    -UGX {formatCurrency(discountAmount)}
+                    -{cs} {formatCurrency(discountAmount)}
                   </td>
                 </tr>
               )}
@@ -404,7 +413,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                     <strong>VAT ({taxRate}%):</strong>
                   </td>
                   <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold' }}>
-                    UGX {formatCurrency(taxAmount)}
+                    {cs} {formatCurrency(taxAmount)}
                   </td>
                 </tr>
               )}
@@ -429,7 +438,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                     fontWeight: 'bold',
                   }}
                 >
-                  UGX {formatCurrency(total)}
+                  {cs} {formatCurrency(total)}
                 </td>
               </tr>
             </tbody>
@@ -456,7 +465,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                         {payment.method === 'CREDIT' ? 'Balance Due' : payment.method}:
                       </td>
                       <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold', width: '35%' }}>
-                        UGX {formatCurrency(payment.amount)}
+                        {cs} {formatCurrency(payment.amount)}
                       </td>
                     </tr>
                   ))}
@@ -488,7 +497,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                     <strong>Amount Tendered:</strong>
                   </td>
                   <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold' }}>
-                    UGX {formatCurrency(amountTendered)}
+                    {cs} {formatCurrency(amountTendered)}
                   </td>
                 </tr>
               )}
@@ -500,7 +509,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                     <strong>Amount Paid:</strong>
                   </td>
                   <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold' }}>
-                    UGX {formatCurrency(amountPaid)}
+                    {cs} {formatCurrency(amountPaid)}
                   </td>
                 </tr>
               )}
@@ -526,7 +535,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                       fontWeight: 'bold',
                     }}
                   >
-                    UGX {formatCurrency(change)}
+                    {cs} {formatCurrency(change)}
                   </td>
                 </tr>
               )}
@@ -554,7 +563,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                       color: '#856404',
                     }}
                   >
-                    UGX {formatCurrency(balanceDue)}
+                    {cs} {formatCurrency(balanceDue)}
                   </td>
                 </tr>
               )}
@@ -594,8 +603,8 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
               color: '#666',
             }}
           >
-            <p style={{ margin: '0' }}>Powered by DigitalShop POS System</p>
-            <p style={{ margin: '0' }}>www.digitalshop.ug</p>
+            <p style={{ margin: '0' }}>Powered by {settings.businessName} POS</p>
+            {settings.businessEmail && <p style={{ margin: '0' }}>{settings.businessEmail}</p>}
           </div>
         </footer>
 
@@ -682,3 +691,4 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
 );
 
 Receipt.displayName = 'Receipt';
+

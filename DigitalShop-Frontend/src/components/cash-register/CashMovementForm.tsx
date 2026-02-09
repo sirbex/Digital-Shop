@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { z } from 'zod';
 import { CreateCashMovementSchema } from '@shared/zod/cashRegister';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface CashMovementFormProps {
   sessionId: string;
@@ -9,6 +10,8 @@ interface CashMovementFormProps {
 }
 
 export function CashMovementForm({ sessionId, onSubmit, onCancel }: CashMovementFormProps) {
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const [type, setType] = useState<'CASH_IN' | 'CASH_OUT'>('CASH_IN');
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
@@ -77,7 +80,7 @@ export function CashMovementForm({ sessionId, onSubmit, onCancel }: CashMovement
 
         <div>
           <label className="block text-sm font-medium mb-1">
-            Amount (UGX) <span className="text-red-500">*</span>
+            Amount ({cs}) <span className="text-red-500">*</span>
           </label>
           <input
             type="number"

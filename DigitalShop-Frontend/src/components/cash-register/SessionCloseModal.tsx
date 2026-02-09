@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { CloseSessionSchema } from '@shared/zod/cashRegister';
 import Decimal from 'decimal.js';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface SessionCloseModalProps {
   isOpen: boolean;
@@ -11,6 +12,8 @@ interface SessionCloseModalProps {
 }
 
 export function SessionCloseModal({ isOpen, onClose, onCloseSession, session }: SessionCloseModalProps) {
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const [closingCash, setClosingCash] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
@@ -106,25 +109,25 @@ export function SessionCloseModal({ isOpen, onClose, onCloseSession, session }: 
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <span className="text-gray-600">Opening Float:</span>
-                <span className="ml-2 font-medium">UGX {session?.openingFloat?.toLocaleString()}</span>
+                <span className="ml-2 font-medium">{cs} {session?.openingFloat?.toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-gray-600">Total Cash Sales:</span>
                 <span className="ml-2 font-medium text-green-600">
-                  UGX {session?.totalCashSales?.toLocaleString()}
+                  {cs} {session?.totalCashSales?.toLocaleString()}
                 </span>
               </div>
               <div>
                 <span className="text-gray-600">Total Card Sales:</span>
-                <span className="ml-2 font-medium">UGX {session?.totalCardSales?.toLocaleString()}</span>
+                <span className="ml-2 font-medium">{cs} {session?.totalCardSales?.toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-gray-600">Mobile Money:</span>
-                <span className="ml-2 font-medium">UGX {session?.totalMobileMoneySales?.toLocaleString()}</span>
+                <span className="ml-2 font-medium">{cs} {session?.totalMobileMoneySales?.toLocaleString()}</span>
               </div>
               <div className="col-span-2 pt-2 border-t">
                 <span className="text-gray-600">Expected Cash:</span>
-                <span className="ml-2 font-bold text-lg">UGX {expectedCash.toLocaleString()}</span>
+                <span className="ml-2 font-bold text-lg">{cs} {expectedCash.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -137,15 +140,15 @@ export function SessionCloseModal({ isOpen, onClose, onCloseSession, session }: 
             <div className="grid grid-cols-3 gap-3">
               {Object.keys(countedDenominations).map(denom => (
                 <div key={denom} className="flex items-center gap-2">
-                  <label className="text-sm w-24">UGX {parseInt(denom).toLocaleString()}:</label>
+                  <label className="text-sm w-24">{cs} {parseInt(denom).toLocaleString()}:</label>
                   <input
                     type="number"
                     min="0"
                     value={countedDenominations[denom as keyof typeof countedDenominations]}
                     onChange={(e) => handleDenominationChange(denom, e.target.value)}
                     className="flex-1 px-2 py-1 border rounded text-sm"
-                    aria-label={`Count of ${denom} UGX notes`}
-                    title={`Count of ${denom} UGX notes`}
+                    aria-label={`Count of ${denom} ${cs} notes`}
+                    title={`Count of ${denom} ${cs} notes`}
                   />
                 </div>
               ))}
@@ -155,7 +158,7 @@ export function SessionCloseModal({ isOpen, onClose, onCloseSession, session }: 
           {/* Closing Cash */}
           <div>
             <label className="block text-sm font-medium mb-1">
-              Total Closing Cash (UGX) <span className="text-red-500">*</span>
+              Total Closing Cash ({cs}) <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
@@ -182,7 +185,7 @@ export function SessionCloseModal({ isOpen, onClose, onCloseSession, session }: 
                 <span className={`text-lg font-bold ${
                   variance > 0 ? 'text-green-600' : variance < 0 ? 'text-red-600' : 'text-green-600'
                 }`}>
-                  {variance >= 0 ? '+' : ''}{variance.toFixed(2)} UGX
+                  {variance >= 0 ? '+' : ''}{variance.toFixed(2)} {cs}
                 </span>
               </div>
               {Math.abs(variance) >= 0.01 && (

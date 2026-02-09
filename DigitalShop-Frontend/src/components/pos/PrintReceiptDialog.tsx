@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { X, Printer, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { Receipt } from './Receipt';
 import POSButton from './POSButton';
+import { useSettings } from '../../contexts/SettingsContext';
 
 type PrintFormat = 'detailed' | 'compact';
 
@@ -78,13 +79,18 @@ export default function PrintReceiptDialog({
   /**
    * Format currency for display
    */
+  const { settings } = useSettings();
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-UG', {
-      style: 'currency',
-      currency: 'UGX',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+    try {
+      return new Intl.NumberFormat('en-UG', {
+        style: 'currency',
+        currency: settings.currencyCode || 'UGX',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(amount);
+    } catch {
+      return `${settings.currencySymbol} ${amount.toLocaleString()}`;
+    }
   };
 
   /**

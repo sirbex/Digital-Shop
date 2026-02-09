@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Clock, Package, User, Trash2, X, Loader2 } from 'lucide-react';
 import { holdApi } from '../../lib/api';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface HeldOrder {
     id: string;
@@ -24,6 +25,8 @@ interface ResumeHoldDialogProps {
  * Shows list of held carts and allows resuming them
  */
 export function ResumeHoldDialog({ isOpen, onClose, onResume }: ResumeHoldDialogProps) {
+    const { settings } = useSettings();
+    const cs = settings.currencySymbol;
     const [holds, setHolds] = useState<HeldOrder[]>([]);
     const [loading, setLoading] = useState(false);
     const [deleting, setDeleting] = useState<string | null>(null);
@@ -172,7 +175,7 @@ export function ResumeHoldDialog({ isOpen, onClose, onResume }: ResumeHoldDialog
                                         </div>
                                         <div>
                                             <span className="text-gray-500 text-xs">Total</span>
-                                            <p className="font-medium">UGX {hold.totalAmount.toLocaleString()}</p>
+                                            <p className="font-medium">{cs} {hold.totalAmount.toLocaleString()}</p>
                                         </div>
                                         <div>
                                             <span className="text-gray-500 text-xs">Held</span>

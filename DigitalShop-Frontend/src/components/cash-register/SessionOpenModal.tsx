@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { z } from 'zod';
 import { OpenSessionSchema } from '@shared/zod/cashRegister';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface SessionOpenModalProps {
   isOpen: boolean;
@@ -11,6 +12,8 @@ interface SessionOpenModalProps {
 
 export function SessionOpenModal({ isOpen, onClose, onOpenSession }: SessionOpenModalProps) {
   const { user } = useAuth();
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const [openingFloat, setOpeningFloat] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
@@ -76,7 +79,7 @@ export function SessionOpenModal({ isOpen, onClose, onOpenSession }: SessionOpen
 
           <div>
             <label className="block text-sm font-medium mb-1">
-              Opening Float (UGX) <span className="text-red-500">*</span>
+              Opening Float ({cs}) <span className="text-red-500">*</span>
             </label>
             <input
               type="number"

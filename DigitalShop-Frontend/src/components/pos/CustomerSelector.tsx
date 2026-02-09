@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { customersApi } from '../../lib/api';
+import { useSettings } from '../../contexts/SettingsContext';
 import QuickAddCustomerModal from '../customers/QuickAddCustomerModal';
 
 interface CustomerSelectorProps {
@@ -8,9 +9,11 @@ interface CustomerSelectorProps {
   saleTotal: number;
 }
 
-const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`;
+const formatCurrencyBase = (amount: number, symbol: string = 'UGX') => `${symbol} ${amount.toLocaleString()}`;
 
 export default function CustomerSelector({ selectedCustomer, onSelectCustomer, saleTotal }: CustomerSelectorProps) {
+  const { settings } = useSettings();
+  const formatCurrency = (amount: number) => formatCurrencyBase(amount, settings.currencySymbol);
   const [search, setSearch] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);

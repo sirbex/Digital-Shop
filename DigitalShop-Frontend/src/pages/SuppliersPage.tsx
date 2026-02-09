@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { suppliersApi, purchasesApi } from '../lib/api';
 import { usePermissions } from '../hooks/usePermissions';
+import { useSettings } from '../contexts/SettingsContext';
 
 // Payment Terms options
 const PAYMENT_TERMS = [
@@ -27,9 +28,9 @@ interface SupplierFormData {
   notes: string;
 }
 
-// Format currency
-const formatUGX = (amount: number) => {
-  return `UGX ${Number(amount || 0).toLocaleString()}`;
+// Format currency - uses module-level default, overridden per-component with settings
+const formatUGX = (amount: number, symbol: string = 'UGX') => {
+  return `${symbol} ${Number(amount || 0).toLocaleString()}`;
 };
 
 // Format date
@@ -44,6 +45,8 @@ const formatDate = (dateString: string | null | undefined): string => {
 
 export function SuppliersPage() {
   const perms = usePermissions();
+  const { settings } = useSettings();
+  const fmtCurrency = (amount: number) => formatUGX(amount, settings.currencySymbol);
 
   // State
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -311,7 +314,7 @@ export function SuppliersPage() {
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-sm text-gray-600">Total Balance</div>
-          <div className="text-2xl font-bold text-orange-600 mt-1">{formatUGX(stats.totalBalance)}</div>
+          <div className="text-2xl font-bold text-orange-600 mt-1">{fmtCurrency(stats.totalBalance)}</div>
           <div className="text-xs text-gray-500 mt-1">Outstanding payables</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
@@ -505,7 +508,7 @@ export function SuppliersPage() {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-right">
                         <span className={`font-mono ${supplier.balance > 0 ? 'text-orange-600' : 'text-gray-600'}`}>
-                          {formatUGX(supplier.balance || 0)}
+                          {fmtCurrency(supplier.balance || 0)}
                         </span>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
@@ -618,7 +621,7 @@ export function SuppliersPage() {
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-gray-500">💰</span>
                     <span className={`font-mono font-semibold ${supplier.balance > 0 ? 'text-orange-600' : 'text-gray-600'}`}>
-                      {formatUGX(supplier.balance || 0)}
+                      {fmtCurrency(supplier.balance || 0)}
                     </span>
                   </div>
                 </div>
@@ -701,6 +704,8 @@ interface SupplierDetailModalProps {
 }
 
 function SupplierDetailModal({ supplier, onClose, onEdit }: SupplierDetailModalProps) {
+  const { settings } = useSettings();
+  const fmtCurrency = (amount: number) => formatUGX(amount, settings.currencySymbol);
   const modalPerms = usePermissions();
   const [activeTab, setActiveTab] = useState<'info' | 'orders'>('info');
   const [orders, setOrders] = useState<any[]>([]);
@@ -820,7 +825,7 @@ function SupplierDetailModal({ supplier, onClose, onEdit }: SupplierDetailModalP
                   <div>
                     <label className="text-sm font-medium text-gray-500">Balance</label>
                     <div className={`mt-1 text-lg font-bold ${supplier.balance > 0 ? 'text-orange-600' : 'text-gray-600'}`}>
-                      {formatUGX(supplier.balance || 0)}
+                      {fmtCurrency(supplier.balance || 0)}
                     </div>
                   </div>
                   <div>
@@ -893,7 +898,7 @@ function SupplierDetailModal({ supplier, onClose, onEdit }: SupplierDetailModalP
                         <div className="text-sm text-gray-600">
                           {order.expectedDeliveryDate && <>Expected: {formatDate(order.expectedDeliveryDate)}</>}
                         </div>
-                        <div className="text-lg font-bold text-gray-900">{formatUGX(order.totalAmount)}</div>
+                        <div className="text-lg font-bold text-gray-900">{fmtCurrency(order.totalAmount)}</div>
                       </div>
                     </div>
                   ))}
@@ -1089,3 +1094,4 @@ function SupplierFormModal({ supplier, onClose, onSubmit }: SupplierFormModalPro
 }
 
 export default SuppliersPage;
+

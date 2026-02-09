@@ -5,6 +5,23 @@ import { logger } from '../../utils/logger.js';
 import * as systemService from './systemService.js';
 
 // ============================================================================
+// GET /api/system/settings/public
+// Get system settings (read-only, any authenticated user)
+// ============================================================================
+export async function getPublicSettings(req: Request, res: Response): Promise<void> {
+  try {
+    const settings = await systemService.getSettings(pool);
+    res.json({ success: true, data: settings });
+  } catch (error) {
+    logger.error('Failed to get public system settings', { error });
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get settings',
+    });
+  }
+}
+
+// ============================================================================
 // GET /api/system/settings
 // Get system settings
 // ============================================================================

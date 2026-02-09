@@ -566,6 +566,9 @@ export const systemApi = {
   getSettings: () =>
     api.get<ApiResponse>('/system/settings'),
   
+  getPublicSettings: () =>
+    api.get<ApiResponse>('/system/settings/public'),
+  
   updateSettings: (data: any) =>
     api.patch<ApiResponse>('/system/settings', data),
   

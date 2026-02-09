@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { customersApi } from '../../lib/api';
+import { useSettings } from '../../contexts/SettingsContext';
 import POSModal from '../pos/POSModal';
 import POSButton from '../pos/POSButton';
 
@@ -22,6 +23,8 @@ export default function QuickAddCustomerModal({
   onClose,
   onSuccess,
 }: QuickAddCustomerModalProps) {
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
@@ -197,7 +200,7 @@ export default function QuickAddCustomerModal({
           {/* Credit Limit */}
           <div>
             <label htmlFor="customer-credit" className="block text-sm font-medium text-gray-700 mb-1">
-              Credit Limit (UGX)
+              Credit Limit ({cs})
             </label>
             <input
               id="customer-credit"
@@ -251,7 +254,7 @@ export default function QuickAddCustomerModal({
                 No Credit
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">💡 Default: 500,000 UGX • Set to 0 for cash-only customers</p>
+            <p className="text-xs text-gray-500 mt-1">💡 Default: 500,000 {cs} • Set to 0 for cash-only customers</p>
           </div>
 
           {/* Submit Error */}

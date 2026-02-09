@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import POSButton from './POSButton';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface PaymentLine {
   id: string;
@@ -26,6 +27,8 @@ export default function SplitPaymentDialog({
   customerName,
   hasCustomer,
 }: SplitPaymentDialogProps) {
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const [payments, setPayments] = useState<PaymentLine[]>([
     { id: '1', method: 'CASH', amount: totalAmount }
   ]);
@@ -63,7 +66,7 @@ export default function SplitPaymentDialog({
 
     // Validate total
     if (totalPaid < totalAmount) {
-      setError(`Payment total (UGX ${totalPaid.toLocaleString()}) is less than sale total (UGX ${totalAmount.toLocaleString()})`);
+      setError(`Payment total (${cs} ${totalPaid.toLocaleString()}) is less than sale total (${cs} ${totalAmount.toLocaleString()})`);
       return;
     }
 
@@ -95,7 +98,7 @@ export default function SplitPaymentDialog({
         <div className="bg-gray-50 rounded-lg p-4 mb-4">
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Sale Total</span>
-            <span className="text-xl font-bold text-gray-900">UGX {totalAmount.toLocaleString()}</span>
+            <span className="text-xl font-bold text-gray-900">{cs} {totalAmount.toLocaleString()}</span>
           </div>
           {customerName && (
             <div className="text-sm text-gray-500 mt-1">Customer: {customerName}</div>
@@ -123,7 +126,7 @@ export default function SplitPaymentDialog({
 
                 {/* Amount */}
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">UGX</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">{cs}</span>
                   <input
                     type="number"
                     value={payment.amount || ''}
@@ -178,19 +181,19 @@ export default function SplitPaymentDialog({
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Total Paid</span>
             <span className={`font-medium ${totalPaid >= totalAmount ? 'text-green-600' : 'text-gray-900'}`}>
-              UGX {totalPaid.toLocaleString()}
+              {cs} {totalPaid.toLocaleString()}
             </span>
           </div>
           {remaining > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Remaining</span>
-              <span className="font-medium text-red-600">UGX {remaining.toLocaleString()}</span>
+              <span className="font-medium text-red-600">{cs} {remaining.toLocaleString()}</span>
             </div>
           )}
           {remaining < 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Change Due</span>
-              <span className="font-medium text-green-600">UGX {Math.abs(remaining).toLocaleString()}</span>
+              <span className="font-medium text-green-600">{cs} {Math.abs(remaining).toLocaleString()}</span>
             </div>
           )}
         </div>

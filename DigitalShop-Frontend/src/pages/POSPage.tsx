@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { salesApi, holdApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { Receipt } from '../components/pos/Receipt';
 import { usePrint } from '../hooks/usePrint';
@@ -58,6 +59,7 @@ interface LineItem {
 
 export function POSPage() {
   const { user } = useAuth();
+  const { settings } = useSettings();
   const perms = usePermissions();
   const { printRef, handlePrint } = usePrint();
   const productSearchRef = useRef<POSProductSearchHandle>(null);
@@ -255,7 +257,7 @@ export function POSPage() {
 
   // Format currency helper
   const formatCurrency = (amount: number) => {
-    return `UGX ${amount.toLocaleString()}`;
+    return `${settings.currencySymbol} ${amount.toLocaleString()}`;
   };
 
   // Clear entire cart
@@ -1004,12 +1006,12 @@ export function POSPage() {
                           <div className="text-xs text-gray-500">{item.sku}</div>
                           {item.discount && (
                             <div className="text-xs text-green-600 mt-1">
-                              -{item.discount.type === 'PERCENTAGE' ? `${item.discount.value}%` : `UGX ${item.discount.value.toLocaleString()}`}
+                              -{item.discount.type === 'PERCENTAGE' ? `${item.discount.value}%` : `${settings.currencySymbol} ${item.discount.value.toLocaleString()}`}
                             </div>
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          UGX {item.unitPrice.toLocaleString()}
+                          {settings.currencySymbol} {item.unitPrice.toLocaleString()}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center gap-1">
@@ -1042,7 +1044,7 @@ export function POSPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right font-medium">
-                          UGX {item.total.toLocaleString()}
+                          {settings.currencySymbol} {item.total.toLocaleString()}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
@@ -1101,26 +1103,26 @@ export function POSPage() {
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Subtotal</span>
-                <span>UGX {totals.subtotal.toLocaleString()}</span>
+                <span>{settings.currencySymbol} {totals.subtotal.toLocaleString()}</span>
               </div>
 
               {totals.discount > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
                   <span>Discount</span>
-                  <span>-UGX {totals.discount.toLocaleString()}</span>
+                  <span>-{settings.currencySymbol} {totals.discount.toLocaleString()}</span>
                 </div>
               )}
 
               {totals.tax > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Tax</span>
-                  <span>UGX {totals.tax.toLocaleString()}</span>
+                  <span>{settings.currencySymbol} {totals.tax.toLocaleString()}</span>
                 </div>
               )}
 
               <div className="border-t pt-3 flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span className="text-blue-600">UGX {totals.total.toLocaleString()}</span>
+                <span className="text-blue-600">{settings.currencySymbol} {totals.total.toLocaleString()}</span>
               </div>
             </div>
 
@@ -1135,7 +1137,7 @@ export function POSPage() {
               className="w-full mt-4 py-2 border-2 border-dashed border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <Percent className="w-4 h-4" />
-              {cartDiscount ? `Discount: ${cartDiscount.type === 'PERCENTAGE' ? `${cartDiscount.value}%` : `UGX ${cartDiscount.value.toLocaleString()}`}` : 'Add Cart Discount'}
+              {cartDiscount ? `Discount: ${cartDiscount.type === 'PERCENTAGE' ? `${cartDiscount.value}%` : `${settings.currencySymbol} ${cartDiscount.value.toLocaleString()}`}` : 'Add Cart Discount'}
             </button>
             )}
 
@@ -1190,7 +1192,7 @@ export function POSPage() {
               className="w-full py-4 text-lg flex items-center justify-center gap-2"
             >
               <CreditCard className="w-5 h-5" />
-              Pay (F4) - UGX {totals.total.toLocaleString()}
+              Pay (F4) - {settings.currencySymbol} {totals.total.toLocaleString()}
             </POSButton>
           </div>
         </div>
@@ -1217,7 +1219,7 @@ export function POSPage() {
           {/* Total */}
           <div className="bg-blue-50 rounded-lg p-4 text-center">
             <div className="text-sm text-blue-600">Total Amount</div>
-            <div className="text-3xl font-bold text-blue-800">UGX {formatCurrency(totals.total)}</div>
+            <div className="text-3xl font-bold text-blue-800">{formatCurrency(totals.total)}</div>
             {selectedCustomer && (
               <div className="text-sm text-blue-600 mt-1">Customer: {selectedCustomer.name}</div>
             )}
@@ -1344,7 +1346,7 @@ export function POSPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold">UGX {formatCurrency(line.amount)}</span>
+                      <span className="font-semibold">{formatCurrency(line.amount)}</span>
                       <button
                         onClick={() => handleRemovePaymentLine(line.id)}
                         className="text-red-600 hover:text-red-800 font-bold px-2 text-lg"
@@ -1364,23 +1366,23 @@ export function POSPage() {
             <div className="space-y-2">
               <div className="flex justify-between items-center bg-gray-100 p-3 rounded-lg">
                 <span className="font-semibold text-gray-700">Sale Total:</span>
-                <span className="font-bold text-xl text-gray-900">UGX {formatCurrency(totals.total)}</span>
+                <span className="font-bold text-xl text-gray-900">{formatCurrency(totals.total)}</span>
               </div>
               {totalPaid > 0 && (
                 <div className="flex justify-between items-center bg-green-50 p-3 rounded-lg">
                   <span className="font-semibold text-green-700">Paid:</span>
-                  <span className="font-bold text-xl text-green-600">UGX {formatCurrency(totalPaid)}</span>
+                  <span className="font-bold text-xl text-green-600">{formatCurrency(totalPaid)}</span>
                 </div>
               )}
               {remainingBalance > 0.01 ? (
                 <div className="flex justify-between items-center bg-red-50 p-3 rounded-lg border-2 border-red-300">
                   <span className="font-bold text-red-700">⚠️ Remaining:</span>
-                  <span className="font-bold text-2xl text-red-600">UGX {formatCurrency(remainingBalance)}</span>
+                  <span className="font-bold text-2xl text-red-600">{formatCurrency(remainingBalance)}</span>
                 </div>
               ) : changeAmount > 0.01 ? (
                 <div className="flex justify-between items-center bg-blue-50 p-3 rounded-lg border-2 border-blue-300 animate-pulse">
                   <span className="font-bold text-blue-700">💰 Change Due:</span>
-                  <span className="font-bold text-2xl text-blue-600">UGX {formatCurrency(changeAmount)}</span>
+                  <span className="font-bold text-2xl text-blue-600">{formatCurrency(changeAmount)}</span>
                 </div>
               ) : totalPaid > 0 ? (
                 <div className="flex justify-between items-center bg-green-50 p-3 rounded-lg border-2 border-green-300">
@@ -1464,7 +1466,7 @@ export function POSPage() {
                 <>
                   Complete Sale
                   <span className="ml-1 text-xs opacity-90">
-                    (UGX {formatCurrency(remainingBalance)} on credit)
+                    ({formatCurrency(remainingBalance)} on credit)
                   </span>
                 </>
               ) : (
@@ -1532,11 +1534,11 @@ export function POSPage() {
           <div>
             <div className="text-lg font-semibold text-gray-900">Sale #{lastSale?.saleNumber}</div>
             <div className="text-2xl font-bold text-green-600 mt-1">
-              UGX {lastSale?.total?.toLocaleString()}
+              {settings.currencySymbol} {lastSale?.total?.toLocaleString()}
             </div>
             {lastSale?.change > 0 && (
               <div className="text-sm text-gray-600 mt-1">
-                Change: UGX {lastSale.change.toLocaleString()}
+                Change: {settings.currencySymbol} {lastSale.change.toLocaleString()}
               </div>
             )}
           </div>

@@ -1,5 +1,6 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { 
   LayoutDashboard, 
@@ -45,6 +46,7 @@ const navItems: NavItem[] = [
 
 export function DashboardLayout() {
   const { user, logout } = useAuth();
+  const { settings } = useSettings();
   const perms = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
@@ -112,9 +114,9 @@ export function DashboardLayout() {
             sidebarCollapsed ? 'justify-center px-2' : 'px-4'
           )}>
             {sidebarCollapsed ? (
-              <span className="text-2xl font-bold text-white">D</span>
+              <span className="text-2xl font-bold text-white">{settings.businessName?.charAt(0) || 'D'}</span>
             ) : (
-              <h1 className="text-2xl font-bold text-white truncate">DigitalShop</h1>
+              <h1 className="text-2xl font-bold text-white truncate">{settings.businessName}</h1>
             )}
           </div>
           
@@ -221,7 +223,7 @@ export function DashboardLayout() {
         <div className="flex h-full flex-col">
           {/* Mobile header */}
           <div className="flex h-16 flex-shrink-0 items-center justify-between px-4 bg-primary">
-            <h1 className="text-xl font-bold text-white">DigitalShop</h1>
+            <h1 className="text-xl font-bold text-white">{settings.businessName}</h1>
             <button 
               onClick={() => setSidebarOpen(false)} 
               className="text-white hover:bg-white/10 rounded-md p-1 transition-colors" 
@@ -303,7 +305,7 @@ export function DashboardLayout() {
             <Menu className="h-6 w-6" />
           </button>
           <div className="flex flex-1 items-center justify-center pr-12">
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900">DigitalShop</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900">{settings.businessName}</h1>
           </div>
         </div>
 

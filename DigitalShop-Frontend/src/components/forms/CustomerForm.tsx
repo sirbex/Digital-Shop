@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { CreateCustomerSchema, UpdateCustomerSchema, type CreateCustomer } from '@shared/zod/customer';
 import { customersApi } from '@/lib/api';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface CustomerFormProps {
   customer?: any; // Existing customer for edit mode
@@ -10,6 +11,8 @@ interface CustomerFormProps {
 }
 
 export function CustomerForm({ customer, onSuccess, onCancel }: CustomerFormProps) {
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const isEditMode = !!customer;
   
   const [formData, setFormData] = useState<Partial<CreateCustomer>>({
@@ -160,7 +163,7 @@ export function CustomerForm({ customer, onSuccess, onCancel }: CustomerFormProp
             {/* Credit Limit */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Credit Limit (UGX)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Credit Limit ({cs})</label>
                 <input
                   type="number"
                   step="0.01"

@@ -11,11 +11,13 @@ import {
 } from '../lib/api';
 import { ProductForm } from '../components/forms/ProductForm';
 import { usePermissions } from '../hooks/usePermissions';
+import { useSettings } from '../contexts/SettingsContext';
 
 type TabType = 'products' | 'stock-levels' | 'batches' | 'adjustments' | 'movements' | 'goods-receipts' | 'purchase-orders';
 
 export function InventoryPage() {
   const perms = usePermissions();
+  const { settings } = useSettings();
   const [activeTab, setActiveTab] = useState<TabType>('products');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -905,13 +907,13 @@ export function InventoryPage() {
                 <td>${item.productName || 'N/A'}</td>
                 <td>${item.sku || '-'}</td>
                 <td class="text-right">${item.orderedQuantity}</td>
-                <td class="text-right">UGX ${Number(item.unitPrice || 0).toLocaleString()}</td>
-                <td class="text-right">UGX ${(item.orderedQuantity * item.unitPrice).toLocaleString()}</td>
+                <td class="text-right">${cs} ${Number(item.unitPrice || 0).toLocaleString()}</td>
+                <td class="text-right">${cs} ${(item.orderedQuantity * item.unitPrice).toLocaleString()}</td>
               </tr>
             `).join('')}
             <tr class="total-row">
               <td colspan="5" class="text-right">Grand Total:</td>
-              <td class="text-right">UGX ${Number(itemsTotal).toLocaleString()}</td>
+              <td class="text-right">${cs} ${Number(itemsTotal).toLocaleString()}</td>
             </tr>
           </tbody>
         </table>
@@ -933,7 +935,7 @@ export function InventoryPage() {
         </div>
 
         <div class="company-info">
-          Generated on ${new Date().toLocaleString()} • DigitalShop ERP System
+          Generated on ${new Date().toLocaleString()} • ${settings.businessName} ERP System
         </div>
       </body>
       </html>
@@ -951,9 +953,10 @@ export function InventoryPage() {
     }, 300);
   };
 
-  // Format currency for UGX
+  // Format currency using settings
+  const cs = settings.currencySymbol;
   const formatUGX = (amount: number) => {
-    return `UGX ${Number(amount || 0).toLocaleString()}`;
+    return `${cs} ${Number(amount || 0).toLocaleString()}`;
   };
 
   const resetAdjustmentForm = () => {
@@ -1218,7 +1221,7 @@ export function InventoryPage() {
                         <div className="text-3xl">💰</div>
                       </div>
                       <div className="text-2xl font-bold">
-                        UGX {inventorySummary.totalCostValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {cs} {inventorySummary.totalCostValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                       <div className="text-purple-100 text-xs mt-1">Total inventory cost</div>
                     </div>
@@ -1231,7 +1234,7 @@ export function InventoryPage() {
                         <div className="text-3xl">💵</div>
                       </div>
                       <div className="text-2xl font-bold">
-                        UGX {inventorySummary.totalSellingValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {cs} {inventorySummary.totalSellingValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                       <div className="text-green-100 text-xs mt-1">Potential revenue</div>
                     </div>
@@ -1244,7 +1247,7 @@ export function InventoryPage() {
                         <div className="text-3xl">📈</div>
                       </div>
                       <div className="text-2xl font-bold">
-                        UGX {inventorySummary.potentialProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {cs} {inventorySummary.potentialProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                       <div className="text-orange-100 text-xs mt-1">If all stock sold</div>
                     </div>
@@ -1342,9 +1345,9 @@ export function InventoryPage() {
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-900">{product.category}</td>
                               <td className="px-4 py-3">
-                                <div className="text-sm text-gray-900">Sell: UGX {product.sellingPrice?.toLocaleString()}</div>
+                                <div className="text-sm text-gray-900">Sell: {cs} {product.sellingPrice?.toLocaleString()}</div>
                                 {perms.canViewCostPrice && (
-                                  <div className="text-xs text-gray-500">Cost: UGX {product.costPrice?.toLocaleString()}</div>
+                                  <div className="text-xs text-gray-500">Cost: {cs} {product.costPrice?.toLocaleString()}</div>
                                 )}
                               </td>
                               <td className="px-4 py-3">
@@ -1488,7 +1491,7 @@ export function InventoryPage() {
                           <td className="px-4 py-3 font-medium">{item.productName}</td>
                           <td className="px-4 py-3 text-sm text-gray-500">{item.sku}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{item.category || '-'}</td>
-                          <td className="px-4 py-3 text-right font-mono">UGX {item.sellingPrice?.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right font-mono">{cs} {item.sellingPrice?.toLocaleString()}</td>
                           <td className="px-4 py-3 text-right font-mono">{item.totalQuantity}</td>
                           <td className="px-4 py-3 text-right font-mono">{item.reorderLevel || '-'}</td>
                           <td className="px-4 py-3">
@@ -2839,12 +2842,12 @@ export function InventoryPage() {
               {perms.canViewCostPrice && (
               <div>
                 <span className="text-gray-500">Cost Price:</span>
-                <span className="ml-2 font-semibold">UGX {transactionHistoryProduct.costPrice?.toLocaleString()}</span>
+                <span className="ml-2 font-semibold">{cs} {transactionHistoryProduct.costPrice?.toLocaleString()}</span>
               </div>
               )}
               <div>
                 <span className="text-gray-500">Selling Price:</span>
-                <span className="ml-2 font-semibold">UGX {transactionHistoryProduct.sellingPrice?.toLocaleString()}</span>
+                <span className="ml-2 font-semibold">{cs} {transactionHistoryProduct.sellingPrice?.toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-gray-500">Reorder Level:</span>
@@ -2886,7 +2889,7 @@ export function InventoryPage() {
                           {productHistory.summary?.salesRevenue?.toLocaleString() || 0}
                         </div>
                         <div className="text-[10px] sm:text-xs text-gray-500">Sales Revenue</div>
-                        <div className="text-[10px] sm:text-xs text-gray-400">UGX</div>
+                        <div className="text-[10px] sm:text-xs text-gray-400">{cs}</div>
                       </div>
                       <div className="bg-white p-2 sm:p-3 rounded border">
                         <div className="text-lg sm:text-2xl font-bold text-purple-600">
@@ -2981,11 +2984,11 @@ export function InventoryPage() {
                                   <td className="px-4 py-2 font-mono text-xs">{sale.saleNumber}</td>
                                   <td className="px-4 py-2">{sale.customerName || 'Walk-in'}</td>
                                   <td className="px-4 py-2 text-right font-semibold text-red-600">-{sale.quantity}</td>
-                                  <td className="px-4 py-2 text-right">UGX {sale.unitPrice?.toLocaleString()}</td>
+                                  <td className="px-4 py-2 text-right">{cs} {sale.unitPrice?.toLocaleString()}</td>
                                   <td className="px-4 py-2 text-right text-orange-600">
                                     {sale.discountAmount > 0 ? `-${sale.discountAmount?.toLocaleString()}` : '-'}
                                   </td>
-                                  <td className="px-4 py-2 text-right font-semibold">UGX {sale.lineTotal?.toLocaleString()}</td>
+                                  <td className="px-4 py-2 text-right font-semibold">{cs} {sale.lineTotal?.toLocaleString()}</td>
                                   <td className="px-4 py-2">
                                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                                       sale.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
@@ -3036,8 +3039,8 @@ export function InventoryPage() {
                                   <td className="px-4 py-2 font-mono text-xs">{receipt.receiptNumber}</td>
                                   <td className="px-4 py-2">{receipt.supplierName || '-'}</td>
                                   <td className="px-4 py-2 text-right font-semibold text-green-600">+{receipt.quantityReceived}</td>
-                                  <td className="px-4 py-2 text-right">UGX {receipt.unitCost?.toLocaleString()}</td>
-                                  <td className="px-4 py-2 text-right font-semibold">UGX {receipt.lineTotal?.toLocaleString()}</td>
+                                  <td className="px-4 py-2 text-right">{cs} {receipt.unitCost?.toLocaleString()}</td>
+                                  <td className="px-4 py-2 text-right font-semibold">{cs} {receipt.lineTotal?.toLocaleString()}</td>
                                   <td className="px-4 py-2">
                                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                                       receipt.status === 'RECEIVED' ? 'bg-green-100 text-green-800' :
@@ -3142,7 +3145,7 @@ export function InventoryPage() {
                                   </td>
                                   <td className="px-4 py-2 text-right">{batch.quantity}</td>
                                   <td className="px-4 py-2 text-right font-semibold">{batch.remainingQuantity}</td>
-                                  {perms.canViewCostPrice && <td className="px-4 py-2 text-right">UGX {batch.costPrice?.toLocaleString()}</td>}
+                                  {perms.canViewCostPrice && <td className="px-4 py-2 text-right">{cs} {batch.costPrice?.toLocaleString()}</td>}
                                   <td className="px-4 py-2">
                                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                                       batch.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
@@ -3290,7 +3293,7 @@ export function InventoryPage() {
                           {productDetailsData.stockValuation.stockValueAtCost?.toLocaleString()}
                         </div>
                         <div className="text-xs text-gray-500">Stock Value (Cost)</div>
-                        <div className="text-xs text-gray-400">UGX</div>
+                        <div className="text-xs text-gray-400">{cs}</div>
                       </div>
                       )}
                       <div className="bg-white p-3 rounded border text-center">
@@ -3298,7 +3301,7 @@ export function InventoryPage() {
                           {productDetailsData.stockValuation.stockValueAtSelling?.toLocaleString()}
                         </div>
                         <div className="text-xs text-gray-500">Stock Value (Selling)</div>
-                        <div className="text-xs text-gray-400">UGX</div>
+                        <div className="text-xs text-gray-400">{cs}</div>
                       </div>
                       {perms.canViewProfit && (
                       <div className="bg-white p-3 rounded border text-center">
@@ -3315,14 +3318,14 @@ export function InventoryPage() {
                       <div className="bg-white p-3 rounded border">
                         <div className="flex justify-between">
                           <span className="text-gray-500">Cost Price:</span>
-                          <span className="font-semibold">UGX {productDetailsData.stockValuation.costPrice?.toLocaleString()}</span>
+                          <span className="font-semibold">{cs} {productDetailsData.stockValuation.costPrice?.toLocaleString()}</span>
                         </div>
                       </div>
                       )}
                       <div className="bg-white p-3 rounded border">
                         <div className="flex justify-between">
                           <span className="text-gray-500">Selling Price:</span>
-                          <span className="font-semibold">UGX {productDetailsData.stockValuation.sellingPrice?.toLocaleString()}</span>
+                          <span className="font-semibold">{cs} {productDetailsData.stockValuation.sellingPrice?.toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
@@ -3346,21 +3349,21 @@ export function InventoryPage() {
                         </div>
                         <div className="flex justify-between bg-white p-2 rounded">
                           <span className="text-gray-500">Total Revenue:</span>
-                          <span className="font-bold text-blue-600">UGX {productDetailsData.salesAnalytics.totalRevenue?.toLocaleString()}</span>
+                          <span className="font-bold text-blue-600">{cs} {productDetailsData.salesAnalytics.totalRevenue?.toLocaleString()}</span>
                         </div>
                         {perms.canViewProfit && (
                         <div className="flex justify-between bg-white p-2 rounded">
                           <span className="text-gray-500">Total Profit:</span>
-                          <span className="font-bold text-green-600">UGX {productDetailsData.salesAnalytics.totalProfit?.toLocaleString()}</span>
+                          <span className="font-bold text-green-600">{cs} {productDetailsData.salesAnalytics.totalProfit?.toLocaleString()}</span>
                         </div>
                         )}
                         <div className="flex justify-between bg-white p-2 rounded">
                           <span className="text-gray-500">Avg Selling Price:</span>
-                          <span className="font-bold">UGX {productDetailsData.salesAnalytics.averageSellingPrice?.toLocaleString()}</span>
+                          <span className="font-bold">{cs} {productDetailsData.salesAnalytics.averageSellingPrice?.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between bg-white p-2 rounded text-xs">
                           <span className="text-gray-500">Price Range:</span>
-                          <span>UGX {productDetailsData.salesAnalytics.minSellingPrice?.toLocaleString()} - {productDetailsData.salesAnalytics.maxSellingPrice?.toLocaleString()}</span>
+                          <span>{cs} {productDetailsData.salesAnalytics.minSellingPrice?.toLocaleString()} - {productDetailsData.salesAnalytics.maxSellingPrice?.toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
@@ -3383,15 +3386,15 @@ export function InventoryPage() {
                         <>
                         <div className="flex justify-between bg-white p-2 rounded">
                           <span className="text-gray-500">Total Purchase Cost:</span>
-                          <span className="font-bold text-red-600">UGX {productDetailsData.purchaseAnalytics.totalPurchaseCost?.toLocaleString()}</span>
+                          <span className="font-bold text-red-600">{cs} {productDetailsData.purchaseAnalytics.totalPurchaseCost?.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between bg-white p-2 rounded">
                           <span className="text-gray-500">Avg Cost Price:</span>
-                          <span className="font-bold">UGX {productDetailsData.purchaseAnalytics.averageCostPrice?.toLocaleString()}</span>
+                          <span className="font-bold">{cs} {productDetailsData.purchaseAnalytics.averageCostPrice?.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between bg-white p-2 rounded text-xs">
                           <span className="text-gray-500">Cost Range:</span>
-                          <span>UGX {productDetailsData.purchaseAnalytics.minCostPrice?.toLocaleString()} - {productDetailsData.purchaseAnalytics.maxCostPrice?.toLocaleString()}</span>
+                          <span>{cs} {productDetailsData.purchaseAnalytics.minCostPrice?.toLocaleString()} - {productDetailsData.purchaseAnalytics.maxCostPrice?.toLocaleString()}</span>
                         </div>
                         </>
                         )}
@@ -3437,8 +3440,8 @@ export function InventoryPage() {
                                 </td>
                                 <td className="px-4 py-2 text-right font-semibold">{supplier.receiptsCount}</td>
                                 <td className="px-4 py-2 text-right font-semibold text-green-600">+{supplier.totalQuantity}</td>
-                                <td className="px-4 py-2 text-right font-semibold">UGX {supplier.totalValue?.toLocaleString()}</td>
-                                <td className="px-4 py-2 text-right">UGX {supplier.averageCost?.toLocaleString()}</td>
+                                <td className="px-4 py-2 text-right font-semibold">{cs} {supplier.totalValue?.toLocaleString()}</td>
+                                <td className="px-4 py-2 text-right">{cs} {supplier.averageCost?.toLocaleString()}</td>
                                 <td className="px-4 py-2 whitespace-nowrap">
                                   {supplier.lastReceiptDate ? new Date(supplier.lastReceiptDate).toLocaleDateString('en-GB') : '-'}
                                 </td>
@@ -3693,3 +3696,5 @@ export function InventoryPage() {
     </div>
   );
 }
+
+

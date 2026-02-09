@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { customersApi } from '../lib/api';
 import { CustomerForm } from '../components/forms/CustomerForm';
 import { usePermissions } from '../hooks/usePermissions';
+import { useSettings } from '../contexts/SettingsContext';
 
 export function CustomersPage() {
   const navigate = useNavigate();
   const perms = usePermissions();
+  const { settings } = useSettings();
+  const cs = settings.currencySymbol;
   const [customers, setCustomers] = useState<any[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,7 +97,7 @@ export function CustomersPage() {
           <div className="bg-white p-4 rounded-lg shadow">
             <p className="text-sm text-gray-600">Total Receivables</p>
             <p className="text-2xl font-bold text-red-600">
-              UGX{' '}
+              {cs}{' '}
               {Math.abs(
                 customers.reduce((sum, c) => sum + Math.min(0, c.balance), 0)
               ).toLocaleString()}
@@ -204,7 +207,7 @@ export function CustomersPage() {
                             : 'text-gray-900'
                         }`}
                       >
-                        UGX {customer.balance.toLocaleString()}
+                        {cs} {customer.balance.toLocaleString()}
                       </div>
                       {customer.balance < 0 && (
                         <div className="text-xs text-red-500">Owes money</div>
@@ -217,7 +220,7 @@ export function CustomersPage() {
                   {perms.canViewCustomerBalance && (
                     <td className="px-6 py-4 text-sm text-gray-900">
                       {customer.creditLimit
-                        ? `UGX ${customer.creditLimit.toLocaleString()}`
+                        ? `${cs} ${customer.creditLimit.toLocaleString()}`
                         : 'No limit'}
                     </td>
                   )}
