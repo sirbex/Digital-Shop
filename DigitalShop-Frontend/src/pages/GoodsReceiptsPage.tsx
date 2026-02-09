@@ -807,8 +807,8 @@ export default function GoodsReceiptsPage() {
 
       {/* Details Modal */}
       {showDetailsModal && selectedGR && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowDetailsModal(false)}>
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4" onClick={() => setShowDetailsModal(false)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-start">
                 <div>
@@ -829,7 +829,7 @@ export default function GoodsReceiptsPage() {
             </div>
 
             <div className="p-6">
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 <div>
                   <label className="text-sm font-medium text-gray-700">Received Date</label>
                   <p className="text-gray-900">
@@ -1059,8 +1059,8 @@ export default function GoodsReceiptsPage() {
 
       {/* Cost Alerts Modal */}
       {showAlertsModal && costAlerts.length > 0 && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowAlertsModal(false)}>
-          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4" onClick={() => setShowAlertsModal(false)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-start">
                 <div>
@@ -1102,7 +1102,7 @@ export default function GoodsReceiptsPage() {
                         <span className="font-semibold text-gray-900">{alert.productName}</span>
                       </div>
                       <p className="text-sm text-gray-700 mb-3">{alert.message}</p>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm">
                         <div>
                           <span className="text-gray-600">Previous Cost:</span>
                           <span className="ml-2 font-semibold text-gray-900">
@@ -1164,8 +1164,8 @@ export default function GoodsReceiptsPage() {
 
       {/* Create GR Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => { setShowCreateModal(false); setSelectedPoId(''); setPoSearch(''); setPoPage(1); setFocusedPoIndex(0); }}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4" onClick={() => { setShowCreateModal(false); setSelectedPoId(''); setPoSearch(''); setPoPage(1); setFocusedPoIndex(0); }}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[95vh] sm:max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-5 border-b border-gray-200 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">Create Goods Receipt from PO</h3>
               <button

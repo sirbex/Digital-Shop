@@ -119,8 +119,8 @@ export function RefundModal({ isOpen, onClose, sale, onSubmit }: RefundModalProp
   if (!isOpen || !sale) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg p-6 w-full max-w-3xl my-8 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto p-2 sm:p-4">
+      <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-3xl my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold mb-4">Process Refund</h2>
 
         <div className="mb-4 p-3 bg-gray-50 rounded">
@@ -188,8 +188,8 @@ export function RefundModal({ isOpen, onClose, sale, onSubmit }: RefundModalProp
           {/* Items to Refund */}
           <div>
             <label className="block text-sm font-medium mb-2">Items to Refund</label>
-            <div className="border rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="border rounded-lg overflow-x-auto">
+              <table className="w-full text-sm min-w-[500px]">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-3 py-2 text-left">Product</th>

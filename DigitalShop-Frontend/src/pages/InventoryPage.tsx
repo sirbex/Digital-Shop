@@ -1863,8 +1863,8 @@ export function InventoryPage() {
 
       {/* Stock Adjustment Modal */}
       {showAdjustModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">New Stock Adjustment</h2>
 
             <div className="space-y-3">
@@ -1960,12 +1960,12 @@ export function InventoryPage() {
 
       {/* Goods Receipt Modal */}
       {showGRModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">New Goods Receipt</h2>
 
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Supplier *</label>
                   <select
@@ -2130,17 +2130,17 @@ export function InventoryPage() {
       {/* Purchase Order Modal */}
       {showPOModal && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4"
           onClick={() => setPoProductDropdown(null)}
         >
           <div 
-            className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-lg p-4 sm:p-6 max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-xl font-bold mb-4">New Purchase Order</h2>
 
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Supplier *</label>
                   <select
@@ -2802,8 +2802,8 @@ export function InventoryPage() {
 
       {/* Transaction History Modal */}
       {showTransactionHistory && transactionHistoryProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
             {/* Header */}
             <div className="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
               <div>
@@ -2829,7 +2829,7 @@ export function InventoryPage() {
             </div>
 
             {/* Product Summary */}
-            <div className={`px-6 py-3 bg-blue-50 border-b grid gap-4 text-sm ${perms.canViewCostPrice ? 'grid-cols-4' : 'grid-cols-3'}`}>
+            <div className={`px-3 sm:px-6 py-3 bg-blue-50 border-b grid gap-2 sm:gap-4 text-sm grid-cols-2 ${perms.canViewCostPrice ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
               <div>
                 <span className="text-gray-500">Current Stock:</span>
                 <span className={`ml-2 font-semibold ${transactionHistoryProduct.quantityOnHand < 0 ? 'text-red-600' : ''}`}>
@@ -2866,46 +2866,46 @@ export function InventoryPage() {
                     <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
                       <span className="mr-2">📊</span> Transaction Summary
                     </h3>
-                    <div className="grid grid-cols-5 gap-4 text-center">
-                      <div className="bg-white p-3 rounded border">
-                        <div className="text-2xl font-bold text-red-600">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4 text-center">
+                      <div className="bg-white p-2 sm:p-3 rounded border">
+                        <div className="text-lg sm:text-2xl font-bold text-red-600">
                           {productHistory.summary?.totalSold?.toFixed(0) || 0}
                         </div>
-                        <div className="text-xs text-gray-500">Qty Sold</div>
-                        <div className="text-xs text-gray-400">{productHistory.summary?.salesCount || 0} sales</div>
+                        <div className="text-[10px] sm:text-xs text-gray-500">Qty Sold</div>
+                        <div className="text-[10px] sm:text-xs text-gray-400">{productHistory.summary?.salesCount || 0} sales</div>
                       </div>
-                      <div className="bg-white p-3 rounded border">
-                        <div className="text-2xl font-bold text-green-600">
+                      <div className="bg-white p-2 sm:p-3 rounded border">
+                        <div className="text-lg sm:text-2xl font-bold text-green-600">
                           {productHistory.summary?.totalReceived?.toFixed(0) || 0}
                         </div>
-                        <div className="text-xs text-gray-500">Qty Received</div>
-                        <div className="text-xs text-gray-400">{productHistory.summary?.receiptsCount || 0} receipts</div>
+                        <div className="text-[10px] sm:text-xs text-gray-500">Qty Received</div>
+                        <div className="text-[10px] sm:text-xs text-gray-400">{productHistory.summary?.receiptsCount || 0} receipts</div>
                       </div>
-                      <div className="bg-white p-3 rounded border">
-                        <div className="text-2xl font-bold text-blue-600">
+                      <div className="bg-white p-2 sm:p-3 rounded border">
+                        <div className="text-lg sm:text-2xl font-bold text-blue-600">
                           {productHistory.summary?.salesRevenue?.toLocaleString() || 0}
                         </div>
-                        <div className="text-xs text-gray-500">Sales Revenue</div>
-                        <div className="text-xs text-gray-400">UGX</div>
+                        <div className="text-[10px] sm:text-xs text-gray-500">Sales Revenue</div>
+                        <div className="text-[10px] sm:text-xs text-gray-400">UGX</div>
                       </div>
-                      <div className="bg-white p-3 rounded border">
-                        <div className="text-2xl font-bold text-purple-600">
+                      <div className="bg-white p-2 sm:p-3 rounded border">
+                        <div className="text-lg sm:text-2xl font-bold text-purple-600">
                           {productHistory.summary?.movementsCount || 0}
                         </div>
-                        <div className="text-xs text-gray-500">Stock Movements</div>
+                        <div className="text-[10px] sm:text-xs text-gray-500">Stock Movements</div>
                       </div>
-                      <div className="bg-white p-3 rounded border">
-                        <div className="text-2xl font-bold text-orange-600">
+                      <div className="bg-white p-2 sm:p-3 rounded border">
+                        <div className="text-lg sm:text-2xl font-bold text-orange-600">
                           {productHistory.summary?.activeBatches || 0}
                         </div>
-                        <div className="text-xs text-gray-500">Active Batches</div>
+                        <div className="text-[10px] sm:text-xs text-gray-500">Active Batches</div>
                       </div>
                     </div>
                   </div>
 
                   {/* Tabs */}
-                  <div className="border-b border-gray-200">
-                    <nav className="-mb-px flex space-x-8">
+                  <div className="border-b border-gray-200 overflow-x-auto">
+                    <nav className="-mb-px flex space-x-3 sm:space-x-8 min-w-max">
                       <button
                         onClick={() => setHistoryTab('sales')}
                         className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
@@ -3183,8 +3183,8 @@ export function InventoryPage() {
 
       {/* Product Details Modal */}
       {showProductDetails && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
             {/* Header */}
             <div className="px-6 py-4 border-b flex items-center justify-between bg-purple-50">
               <div>
@@ -3224,7 +3224,7 @@ export function InventoryPage() {
                     <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
                       <span className="mr-2">📦</span> Product Information
                     </h3>
-                    <div className="grid grid-cols-4 gap-4 text-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-sm">
                       <div>
                         <span className="text-gray-500">SKU:</span>
                         <span className="ml-2 font-semibold">{productDetailsData.product.sku}</span>
@@ -3277,7 +3277,7 @@ export function InventoryPage() {
                     <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
                       <span className="mr-2">💰</span> Stock Valuation
                     </h3>
-                    <div className={`grid gap-4 ${perms.canViewCostPrice && perms.canViewProfit ? 'grid-cols-4' : perms.canViewCostPrice || perms.canViewProfit ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                    <div className={`grid gap-2 sm:gap-4 grid-cols-2 ${perms.canViewCostPrice && perms.canViewProfit ? 'md:grid-cols-4' : perms.canViewCostPrice || perms.canViewProfit ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
                       <div className="bg-white p-3 rounded border text-center">
                         <div className={`text-2xl font-bold ${productDetailsData.stockValuation.quantityOnHand < 0 ? 'text-red-600' : 'text-blue-600'}`}>
                           {productDetailsData.stockValuation.quantityOnHand}
@@ -3329,7 +3329,7 @@ export function InventoryPage() {
                   </div>
 
                   {/* Sales & Purchase Analytics */}
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     {/* Sales Analytics */}
                     <div className="bg-green-50 rounded-lg p-4">
                       <h3 className="font-semibold text-gray-900 mb-3 flex items-center">

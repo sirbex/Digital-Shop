@@ -119,8 +119,8 @@ function SaleDetailsModal({ sale, onClose, onPrint, showProfit = true }: { sale:
   if (!sale) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl my-8 max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto p-2 sm:p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="bg-gray-50 px-6 py-4 border-b flex items-center justify-between">
           <div>
@@ -169,7 +169,7 @@ function SaleDetailsModal({ sale, onClose, onPrint, showProfit = true }: { sale:
           </div>
 
           {/* Items Table */}
-          <div className="border rounded-lg overflow-hidden mb-6">
+          <div className="border rounded-lg overflow-x-auto mb-6">
             {/* Check if any item has discount */}
             {(() => {
               const hasAnyDiscount = sale.items?.some((item: any) => parseFloat(item.discountAmount || 0) > 0);
