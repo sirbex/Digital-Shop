@@ -28,7 +28,9 @@ export interface Sale {
 export interface SaleItem {
   id: string;
   saleId: string;
-  productId: string;
+  productId: string | null;
+  itemType: string;
+  customDescription: string | null;
   productName: string;
   sku: string | null;
   quantity: number;
@@ -62,7 +64,9 @@ export interface CreateSaleData {
   taxAmount?: number;
   discountAmount?: number;
   items: {
-    productId: string;
+    productId?: string | null;
+    itemType?: string;
+    customDescription?: string;
     quantity: number;
     unitPrice: number;
     unitCost?: number;
@@ -125,6 +129,8 @@ function toSaleItem(row: salesRepository.SaleItemRow): SaleItem {
     id: row.id,
     saleId: row.sale_id,
     productId: row.product_id,
+    itemType: row.item_type || 'PRODUCT',
+    customDescription: row.custom_description,
     productName: row.product_name,
     sku: row.sku,
     quantity,
@@ -182,7 +188,9 @@ function calculateSaleTotals(items: CreateSaleData['items'], cartDiscountAmount?
     totalCost = totalCost.plus(itemCost);
 
     return {
-      productId: item.productId,
+      productId: item.productId || null,
+      itemType: item.itemType || 'PRODUCT',
+      customDescription: item.customDescription,
       quantity: quantity.toNumber(),
       unitPrice: unitPrice.toNumber(),
       unitCost: unitCost.toNumber(),
@@ -286,27 +294,42 @@ export async function createSale(pool: Pool, data: CreateSaleData): Promise<stri
   // STOCK AVAILABILITY VALIDATION (BULLETPROOF)
   // Check that all products have sufficient stock BEFORE attempting the sale
   // Handles: zero/negative quantities, same product multiple times, no batches
+  // SERVICE/CUSTOM items bypass stock checks entirely
   // ========================================================================
   
-  // Validate individual item quantities
+  // Validate individual item quantities and separate product vs custom items
+  const productItems: typeof data.items = [];
+  const customItems: typeof data.items = [];
+
   for (const item of data.items) {
     if (!item.quantity || item.quantity <= 0) {
       throw new Error('Item quantity must be greater than zero');
     }
-    if (!item.productId) {
-      throw new Error('Product ID is required for each item');
+    const isCustom = item.itemType === 'SERVICE' || item.itemType === 'CUSTOM';
+    if (!isCustom && !item.productId) {
+      throw new Error('Product ID is required for product items');
+    }
+    if (isCustom && (!item.customDescription || !item.customDescription.trim())) {
+      throw new Error('Description is required for service/custom items');
+    }
+    if (isCustom) {
+      customItems.push(item);
+    } else {
+      productItems.push(item);
     }
   }
   
-  // Aggregate quantities by product (in case same product appears multiple times)
+  // Aggregate quantities by product (only for inventory-tracked items)
   const quantityByProduct = new Map<string, number>();
-  for (const item of data.items) {
-    const current = quantityByProduct.get(item.productId) || 0;
-    quantityByProduct.set(item.productId, current + item.quantity);
+  for (const item of productItems) {
+    const current = quantityByProduct.get(item.productId!) || 0;
+    quantityByProduct.set(item.productId!, current + item.quantity);
   }
   
   const productIds = Array.from(quantityByProduct.keys());
   
+  // Stock check only needed for product items
+  if (productIds.length > 0) {
   // Get product details with current stock (both batch and direct quantity)
   const stockCheckResult = await pool.query(
     `SELECT 
@@ -361,25 +384,30 @@ export async function createSale(pool: Pool, data: CreateSaleData): Promise<stri
       );
     }
   }
+  } // end if productIds.length > 0
 
-  // Fetch product details for each item (cost price, tax rate)
+  // Fetch product details for inventory items (cost price, tax rate)
+  const productMap = new Map<string, { costPrice: number; taxRate: number }>();
+  if (productIds.length > 0) {
   const productDetailsResult = await pool.query(
     `SELECT id, cost_price, tax_rate, is_taxable FROM products WHERE id = ANY($1)`,
     [productIds]
   );
   
-  const productMap = new Map<string, { costPrice: number; taxRate: number }>();
   for (const row of productDetailsResult.rows) {
     productMap.set(row.id, {
       costPrice: parseFloat(row.cost_price) || 0,
       taxRate: row.is_taxable ? (parseFloat(row.tax_rate) || 0) : 0,
     });
   }
+  }
 
   // Enrich items with product details
   // CRITICAL: taxRate must be converted from decimal (0.18) to percentage (18) for calculateSaleTotals
+  // SERVICE/CUSTOM items use the values as-sent (no product lookup)
   const enrichedItems = data.items.map(item => {
-    const product = productMap.get(item.productId);
+    const isCustom = item.itemType === 'SERVICE' || item.itemType === 'CUSTOM';
+    const product = isCustom ? null : productMap.get(item.productId!);
     // Frontend sends taxRate as decimal (0.18 = 18%), backend calculateSaleTotals expects percentage (18)
     const frontendTaxRate = item.taxRate ?? 0;
     const productTaxRate = product?.taxRate ?? 0;
@@ -389,10 +417,12 @@ export async function createSale(pool: Pool, data: CreateSaleData): Promise<stri
       : productTaxRate * 100;  // Convert 0.18 -> 18
     
     return {
-      productId: item.productId,
+      productId: isCustom ? null : item.productId,
+      itemType: item.itemType || 'PRODUCT',
+      customDescription: item.customDescription,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
-      unitCost: item.unitCost ?? product?.costPrice ?? 0,
+      unitCost: isCustom ? 0 : (item.unitCost ?? product?.costPrice ?? 0),
       taxRate: taxRateAsPercentage,
       discountAmount: item.discountAmount ?? 0,
       batchId: item.batchId,
@@ -604,8 +634,8 @@ export async function refundSale(
   if (data.returnToInventory) {
     for (const refundItem of data.items) {
       const saleItem = saleItems.find(si => si.id === refundItem.saleItemId);
-      if (saleItem && saleItem.batch_id) {
-        // Restore inventory to original batch
+      if (saleItem && saleItem.batch_id && saleItem.product_id) {
+        // Restore inventory to original batch (only for product items)
         await salesRepository.restoreInventory(
           pool,
           saleItem.product_id,

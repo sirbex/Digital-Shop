@@ -11,6 +11,7 @@ import DiscountDialog from '../components/pos/DiscountDialog';
 import { HoldCartDialog } from '../components/pos/HoldCartDialog';
 import { ResumeHoldDialog } from '../components/pos/ResumeHoldDialog';
 import SplitPaymentDialog from '../components/pos/SplitPaymentDialog';
+import CustomItemDialog, { CustomItemData } from '../components/pos/CustomItemDialog';
 import PrintReceiptDialog, { ReceiptData } from '../components/pos/PrintReceiptDialog';
 import POSButton from '../components/pos/POSButton';
 import POSModal from '../components/pos/POSModal';
@@ -30,14 +31,17 @@ import {
   PlayCircle,
   Calculator,
   User,
-  Receipt as ReceiptIcon
+  Receipt as ReceiptIcon,
+  Wrench
 } from 'lucide-react';
 import Decimal from 'decimal.js';
 
 // Line item type matching SamplePOS
 interface LineItem {
   id: string;
-  productId: string;
+  productId: string | null;
+  itemType: 'PRODUCT' | 'SERVICE' | 'CUSTOM';
+  customDescription?: string;
   name: string;
   sku: string;
   quantity: number;
@@ -100,6 +104,9 @@ export function POSPage() {
   // Discount state
   const [showDiscountDialog, setShowDiscountDialog] = useState(false);
   const [discountTarget, setDiscountTarget] = useState<{ type: 'cart' | 'item'; itemIndex?: number } | null>(null);
+
+  // Custom item state
+  const [showCustomItemDialog, setShowCustomItemDialog] = useState(false);
 
   // Hold cart state (uses backend API now)
   const [showHoldCartDialog, setShowHoldCartDialog] = useState(false);
@@ -190,6 +197,7 @@ export function POSPage() {
       const newItem: LineItem = {
         id: Date.now().toString(),
         productId: product.id,
+        itemType: 'PRODUCT',
         name: product.name,
         sku: product.sku,
         quantity: 1,
@@ -208,6 +216,32 @@ export function POSPage() {
 
     // Clear search and refocus
     productSearchRef.current?.clearSearch();
+    productSearchRef.current?.focusSearch();
+  };
+
+  // Add custom/service item to cart (no inventory)
+  const handleAddCustomItem = (data: CustomItemData) => {
+    const subtotal = new Decimal(data.unitPrice).times(data.quantity).toNumber();
+
+    const newItem: LineItem = {
+      id: Date.now().toString(),
+      productId: null,
+      itemType: data.itemType,
+      customDescription: data.customDescription,
+      name: data.customDescription,
+      sku: data.itemType === 'SERVICE' ? 'SERVICE' : 'CUSTOM',
+      quantity: data.quantity,
+      unitPrice: data.unitPrice,
+      costPrice: 0,
+      marginPct: 100,
+      subtotal,
+      isTaxable: false,
+      taxRate: 0,
+      taxAmount: 0,
+      total: subtotal,
+    };
+
+    setItems(prev => [...prev, newItem]);
     productSearchRef.current?.focusSearch();
   };
 
@@ -693,7 +727,9 @@ export function POSPage() {
         customerId: selectedCustomer?.id || null,
         paymentMethod: determinedPaymentMethod,
         items: items.map(item => ({
-          productId: item.productId,
+          productId: item.productId || null,
+          itemType: item.itemType || 'PRODUCT',
+          customDescription: item.customDescription || undefined,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           // CRITICAL: Only send taxRate if item is taxable (prevents tax on non-taxable products)
@@ -796,10 +832,12 @@ export function POSPage() {
         return;
       }
 
-      // F2 - Focus search
+      // F2 - Open custom item dialog
       if (e.key === 'F2') {
         e.preventDefault();
-        productSearchRef.current?.focusSearch();
+        if (!showCustomItemDialog) {
+          setShowCustomItemDialog(true);
+        }
         return;
       }
 
@@ -882,6 +920,10 @@ export function POSPage() {
           setShowDiscountDialog(false);
           return;
         }
+        if (showCustomItemDialog) {
+          setShowCustomItemDialog(false);
+          return;
+        }
         if (showHoldCartDialog) {
           setShowHoldCartDialog(false);
           return;
@@ -899,7 +941,7 @@ export function POSPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [items.length, heldOrdersCount, showPaymentModal, showSplitPayment, showDiscountDialog, showHoldCartDialog, showResumeDialog, showReceiptModal]);
+  }, [items.length, heldOrdersCount, showPaymentModal, showSplitPayment, showDiscountDialog, showHoldCartDialog, showResumeDialog, showReceiptModal, showCustomItemDialog]);
 
   return (
     <div className="h-full flex flex-col bg-gray-100">
@@ -945,10 +987,22 @@ export function POSPage() {
         {/* Left Panel - Product Search */}
         <div className="lg:col-span-2 flex flex-col gap-4">
           <div className="bg-white rounded-lg shadow p-4">
-            <POSProductSearch 
-              ref={productSearchRef}
-              onSelect={handleAddProduct} 
-            />
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <POSProductSearch 
+                  ref={productSearchRef}
+                  onSelect={handleAddProduct} 
+                />
+              </div>
+              <button
+                onClick={() => setShowCustomItemDialog(true)}
+                className="shrink-0 flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
+                title="Add custom or service item (F2)"
+              >
+                <Wrench className="w-4 h-4" />
+                Custom Item
+              </button>
+            </div>
             
             {/* Keyboard Shortcuts Help - matches SamplePOS */}
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-500">
@@ -956,6 +1010,7 @@ export function POSPage() {
               <span className="bg-gray-100 px-2 py-1 rounded" title="Navigate product list">↑↓ Navigate</span>
               <span className="bg-gray-100 px-2 py-1 rounded" title="Add selected product">Enter Add</span>
               <span className="bg-gray-100 px-2 py-1 rounded" title="Clear search">Esc Clear</span>
+              <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded" title="Add custom/service item">F2 Custom</span>
               <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded" title="Open payment modal">Shift+Enter Pay</span>
               <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded" title="Add cart discount">Ctrl+D Discount</span>
               <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded" title="Hold/Resume cart">Ctrl+H Hold</span>
@@ -1002,8 +1057,16 @@ export function POSPage() {
                     {items.map((item, index) => (
                       <tr key={item.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
-                          <div className="font-medium text-gray-900">{item.name}</div>
-                          <div className="text-xs text-gray-500">{item.sku}</div>
+                          <div className="font-medium text-gray-900 flex items-center gap-1.5">
+                            {item.name}
+                            {item.itemType === 'SERVICE' && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full font-semibold">SVC</span>
+                            )}
+                            {item.itemType === 'CUSTOM' && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full font-semibold">CUSTOM</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500">{item.itemType !== 'PRODUCT' ? item.itemType : item.sku}</div>
                           {item.discount && (
                             <div className="text-xs text-green-600 mt-1">
                               -{item.discount.type === 'PERCENTAGE' ? `${item.discount.value}%` : `${settings.currencySymbol} ${item.discount.value.toLocaleString()}`}
@@ -1492,6 +1555,13 @@ export function POSPage() {
         }
         lineItemIndex={discountTarget?.type === 'item' ? discountTarget.itemIndex : undefined}
         userRole={user?.role || 'STAFF'}
+      />
+
+      {/* Custom Item Dialog */}
+      <CustomItemDialog
+        isOpen={showCustomItemDialog}
+        onClose={() => setShowCustomItemDialog(false)}
+        onAdd={handleAddCustomItem}
       />
 
       {/* Hold Cart Dialog */}

@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+// Sale item type enum
+export const SaleItemTypeEnum = z.enum(['PRODUCT', 'SERVICE', 'CUSTOM']);
+
 // Sale status enum
 export const SaleStatusEnum = z.enum(['COMPLETED', 'VOID', 'REFUNDED']);
 
@@ -51,10 +54,12 @@ export const CreateSaleSchema = z.object({
   cashRegisterId: z.string().uuid('Invalid cash register ID').nullable().optional(),
   sessionId: z.string().uuid('Invalid session ID').nullable().optional(),
   items: z.array(z.object({
-    productId: z.string().uuid('Invalid product ID'),
+    productId: z.string().uuid('Invalid product ID').nullable().optional(),
+    itemType: SaleItemTypeEnum.optional().default('PRODUCT'),
+    customDescription: z.string().min(1, 'Description required for service/custom items').optional(),
     quantity: z.number().positive('Quantity must be positive'),
     unitPrice: z.number().nonnegative('Unit price cannot be negative'),
-    discountAmount: z.number().nonnegative('Discount cannot be negative').optional().default(0), // FIXED: Renamed from 'discount' to match backend
+    discountAmount: z.number().nonnegative('Discount cannot be negative').optional().default(0),
     taxRate: z.number().nonnegative('Tax rate cannot be negative').optional(),
     batchId: z.string().uuid().nullable().optional(),
   })).min(1, 'At least one item is required'),
@@ -94,6 +99,7 @@ export const PrintReceiptSchema = z.object({
 });
 
 // Inferred types
+export type SaleItemType = z.infer<typeof SaleItemTypeEnum>;
 export type SaleStatus = z.infer<typeof SaleStatusEnum>;
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
 export type SaleItem = z.infer<typeof SaleItemSchema>;

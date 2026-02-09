@@ -197,8 +197,16 @@ function SaleDetailsModal({ sale, onClose, onPrint, showProfit = true }: { sale:
                       return (
                         <tr key={item.id || index} className="hover:bg-gray-50">
                           <td className="px-4 py-3">
-                            <div className="font-medium text-gray-900">{item.productName}</div>
-                            {item.sku && <div className="text-xs text-gray-500">SKU: {item.sku}</div>}
+                            <div className="font-medium text-gray-900 flex items-center gap-1.5">
+                              {item.productName}
+                              {item.itemType === 'SERVICE' && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full font-semibold">SVC</span>
+                              )}
+                              {item.itemType === 'CUSTOM' && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full font-semibold">CUSTOM</span>
+                              )}
+                            </div>
+                            {item.sku && item.itemType !== 'SERVICE' && item.itemType !== 'CUSTOM' && <div className="text-xs text-gray-500">SKU: {item.sku}</div>}
                           </td>
                           <td className="px-4 py-3 text-right">{item.quantity}</td>
                           <td className="px-4 py-3 text-right">{cs} {parseFloat(item.unitPrice).toLocaleString()}</td>

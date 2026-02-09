@@ -27,7 +27,9 @@ export interface SaleRow {
 export interface SaleItemRow {
   id: string;
   sale_id: string;
-  product_id: string;
+  product_id: string | null;
+  item_type: string;
+  custom_description: string | null;
   product_name: string;
   sku: string | null;
   quantity: string;
@@ -60,7 +62,9 @@ export interface CreateSaleParams {
 
 export interface CreateSaleItemParams {
   saleId: string;
-  productId: string;
+  productId: string | null;
+  itemType: string;
+  customDescription?: string;
   quantity: number;
   unitPrice: number;
   unitCost: number;
@@ -198,11 +202,13 @@ export async function getSaleItems(pool: Pool, saleId: string): Promise<SaleItem
   const query = `
     SELECT 
       si.*,
-      p.name as product_name,
+      si.item_type,
+      si.custom_description,
+      COALESCE(p.name, si.custom_description) as product_name,
       p.sku,
       ib.batch_number
     FROM sale_items si
-    JOIN products p ON si.product_id = p.id
+    LEFT JOIN products p ON si.product_id = p.id
     LEFT JOIN inventory_batches ib ON si.batch_id = ib.id
     WHERE si.sale_id = $1
     ORDER BY si.created_at
@@ -305,17 +311,22 @@ export async function createSale(
 
     // Create sale items
     for (const item of items) {
+      const isCustomItem = item.itemType === 'SERVICE' || item.itemType === 'CUSTOM';
+
       const itemQuery = `
         INSERT INTO sale_items (
-          sale_id, product_id, quantity, unit_price, unit_cost,
+          sale_id, product_id, item_type, custom_description,
+          quantity, unit_price, unit_cost,
           discount_amount, total_price, profit, batch_id
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       `;
 
       await client.query(itemQuery, [
         saleId,
-        item.productId,
+        isCustomItem ? null : item.productId,
+        item.itemType || 'PRODUCT',
+        item.customDescription || null,
         item.quantity,
         item.unitPrice,
         item.unitCost,
@@ -326,10 +337,11 @@ export async function createSale(
       ]);
 
       // =================================================================
-      // INVENTORY DEDUCTION LOGIC (FEFO - First Expiry First Out)
-      // BULLETPROOF: Supports multi-batch deduction with safety checks
-      // Never allows remaining_quantity to go negative
+      // INVENTORY DEDUCTION: Skip for SERVICE/CUSTOM items (no inventory)
       // =================================================================
+      if (isCustomItem) {
+        continue; // No inventory to deduct for service/custom items
+      }
       let remainingToDeduct = item.quantity;
       let primaryBatchId = item.batchId || null;
       
