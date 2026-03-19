@@ -40,7 +40,34 @@ export const UpdateSupplierSchema = z.object({
   isActive: z.boolean().optional(),
 }).strict();
 
+// Schema for recording a supplier payment
+export const RecordSupplierPaymentSchema = z.object({
+  amount: z.number().positive('Amount must be greater than zero'),
+  paymentMethod: z.enum(['CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER']),
+  paymentDate: z.string().optional(),
+  purchaseOrderId: z.string().uuid().nullable().optional(),
+  referenceNumber: z.string().max(200).optional(),
+  notes: z.string().optional(),
+}).strict();
+
+// Supplier payment response schema
+export const SupplierPaymentSchema = z.object({
+  id: z.string().uuid(),
+  receiptNumber: z.string(),
+  supplierId: z.string().uuid(),
+  purchaseOrderId: z.string().uuid().nullable(),
+  paymentDate: z.string(),
+  paymentMethod: z.string(),
+  amount: z.number(),
+  referenceNumber: z.string().nullable(),
+  notes: z.string().nullable(),
+  processedById: z.string().uuid().nullable(),
+  createdAt: z.string(),
+});
+
 // Inferred types
 export type Supplier = z.infer<typeof SupplierSchema>;
 export type CreateSupplier = z.infer<typeof CreateSupplierSchema>;
 export type UpdateSupplier = z.infer<typeof UpdateSupplierSchema>;
+export type RecordSupplierPayment = z.infer<typeof RecordSupplierPaymentSchema>;
+export type SupplierPayment = z.infer<typeof SupplierPaymentSchema>;

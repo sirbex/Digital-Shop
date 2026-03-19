@@ -250,6 +250,12 @@ export const suppliersApi = {
   
   update: (id: string, data: any) =>
     api.put<ApiResponse>(`/suppliers/${id}`, data),
+
+  getPayments: (id: string) =>
+    api.get<ApiResponse>(`/suppliers/${id}/payments`),
+
+  recordPayment: (id: string, data: any) =>
+    api.post<ApiResponse>(`/suppliers/${id}/payments`, data),
 };
 
 // Purchase Orders API

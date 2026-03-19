@@ -329,3 +329,105 @@ export async function getSupplierTransactions(pool: Pool, supplierId: string): P
   }
 }
 
+// ============================================================================
+// SUPPLIER PAYMENTS
+// ============================================================================
+
+export interface SupplierPaymentRow {
+  id: string;
+  receipt_number: string;
+  supplier_id: string;
+  purchase_order_id: string | null;
+  payment_date: string;
+  payment_method: string;
+  amount: string;
+  reference_number: string | null;
+  notes: string | null;
+  processed_by_id: string | null;
+  created_at: string;
+}
+
+export interface CreateSupplierPaymentParams {
+  supplierId: string;
+  purchaseOrderId?: string | null;
+  paymentDate?: string;
+  paymentMethod: string;
+  amount: number;
+  referenceNumber?: string;
+  notes?: string;
+  processedById: string;
+}
+
+/**
+ * Create a supplier payment
+ */
+export async function createSupplierPayment(
+  pool: Pool,
+  params: CreateSupplierPaymentParams
+): Promise<SupplierPaymentRow> {
+  // Generate receipt number
+  const receiptResult = await pool.query(
+    `SELECT 'SP-' || TO_CHAR(CURRENT_TIMESTAMP, 'YYYYMMDD') || '-' || LPAD(
+      (COALESCE(
+        (SELECT COUNT(*) + 1 FROM supplier_payments
+         WHERE created_at::date = CURRENT_DATE), 1
+      ))::text, 4, '0') AS receipt_number`
+  );
+  const receiptNumber = receiptResult.rows[0].receipt_number;
+
+  const query = `
+    INSERT INTO supplier_payments (
+      receipt_number, supplier_id, purchase_order_id, payment_date,
+      payment_method, amount, reference_number, notes, processed_by_id
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    RETURNING *
+  `;
+
+  try {
+    const result = await pool.query<SupplierPaymentRow>(query, [
+      receiptNumber,
+      params.supplierId,
+      params.purchaseOrderId || null,
+      params.paymentDate || new Date().toISOString(),
+      params.paymentMethod,
+      params.amount,
+      params.referenceNumber || null,
+      params.notes || null,
+      params.processedById,
+    ]);
+
+    logger.info('Supplier payment created', {
+      paymentId: result.rows[0].id,
+      supplierId: params.supplierId,
+      amount: params.amount,
+      receiptNumber,
+    });
+    return result.rows[0];
+  } catch (error) {
+    logger.error('Failed to create supplier payment', { params, error });
+    throw error;
+  }
+}
+
+/**
+ * Get payments for a specific supplier
+ */
+export async function getSupplierPayments(pool: Pool, supplierId: string): Promise<SupplierPaymentRow[]> {
+  const query = `
+    SELECT sp.*, u.name as processed_by_name
+    FROM supplier_payments sp
+    LEFT JOIN users u ON sp.processed_by_id = u.id
+    WHERE sp.supplier_id = $1
+    ORDER BY sp.payment_date DESC
+  `;
+
+  try {
+    const result = await pool.query<SupplierPaymentRow>(query, [supplierId]);
+    return result.rows;
+  } catch (error) {
+    logger.error('Failed to get supplier payments', { supplierId, error });
+    throw error;
+  }
+}
+

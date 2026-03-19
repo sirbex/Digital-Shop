@@ -35,6 +35,8 @@ export type {
   Supplier,
   CreateSupplier,
   UpdateSupplier,
+  RecordSupplierPayment,
+  SupplierPayment,
 } from '../zod/supplier';
 
 // API Response types

@@ -184,3 +184,101 @@ export async function getSupplierTransactions(
     createdAt: row.created_at,
   }));
 }
+
+// ============================================================================
+// SUPPLIER PAYMENTS
+// ============================================================================
+
+export interface SupplierPayment {
+  id: string;
+  receiptNumber: string;
+  supplierId: string;
+  purchaseOrderId: string | null;
+  paymentDate: string;
+  paymentMethod: string;
+  amount: number;
+  referenceNumber: string | null;
+  notes: string | null;
+  processedById: string | null;
+  processedByName?: string | null;
+  createdAt: string;
+}
+
+export interface RecordSupplierPaymentData {
+  amount: number;
+  paymentMethod: string;
+  paymentDate?: string;
+  purchaseOrderId?: string | null;
+  referenceNumber?: string;
+  notes?: string;
+}
+
+function toSupplierPayment(row: any): SupplierPayment {
+  return {
+    id: row.id,
+    receiptNumber: row.receipt_number,
+    supplierId: row.supplier_id,
+    purchaseOrderId: row.purchase_order_id,
+    paymentDate: row.payment_date,
+    paymentMethod: row.payment_method,
+    amount: parseFloat(row.amount),
+    referenceNumber: row.reference_number,
+    notes: row.notes,
+    processedById: row.processed_by_id,
+    processedByName: row.processed_by_name || null,
+    createdAt: row.created_at,
+  };
+}
+
+/**
+ * Record a payment to a supplier
+ */
+export async function recordSupplierPayment(
+  pool: Pool,
+  supplierId: string,
+  data: RecordSupplierPaymentData,
+  processedById: string
+): Promise<SupplierPayment> {
+  // Verify supplier exists
+  const supplier = await getSupplierById(pool, supplierId);
+
+  // Validate payment amount doesn't exceed balance
+  if (data.amount > supplier.balance + 0.01) {
+    throw new Error(
+      `Payment amount (${data.amount}) exceeds supplier balance (${supplier.balance})`
+    );
+  }
+
+  const row = await suppliersRepository.createSupplierPayment(pool, {
+    supplierId,
+    purchaseOrderId: data.purchaseOrderId,
+    paymentDate: data.paymentDate,
+    paymentMethod: data.paymentMethod,
+    amount: data.amount,
+    referenceNumber: data.referenceNumber,
+    notes: data.notes,
+    processedById,
+  });
+
+  logger.info('Supplier payment recorded', {
+    supplierId,
+    amount: data.amount,
+    receiptNumber: row.receipt_number,
+  });
+
+  return toSupplierPayment(row);
+}
+
+/**
+ * Get all payments for a supplier
+ */
+export async function getSupplierPayments(
+  pool: Pool,
+  supplierId: string
+): Promise<SupplierPayment[]> {
+  // Verify supplier exists
+  await getSupplierById(pool, supplierId);
+
+  const rows = await suppliersRepository.getSupplierPayments(pool, supplierId);
+  return rows.map(toSupplierPayment);
+}

@@ -5,7 +5,7 @@ import { logger } from '../../utils/logger.js';
 import * as suppliersService from './suppliersService.js';
 // Import shared Zod validation schemas
 import * as SupplierSchemas from '../../../../DigitalShop-Shared/dist/zod/supplier.js';
-const { CreateSupplierSchema, UpdateSupplierSchema } = SupplierSchemas;
+const { CreateSupplierSchema, UpdateSupplierSchema, RecordSupplierPaymentSchema } = SupplierSchemas;
 
 /**
  * GET /api/suppliers
@@ -260,6 +260,86 @@ export async function deleteSupplier(req: Request, res: Response): Promise<void>
     res.status(500).json({
       success: false,
       error: 'Failed to delete supplier',
+    });
+  }
+}
+
+/**
+ * POST /api/suppliers/:id/payments
+ * Record a payment to a supplier
+ */
+export async function recordSupplierPayment(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const validated = RecordSupplierPaymentSchema.parse(req.body);
+    const userId = (req as any).user?.id;
+
+    const payment = await suppliersService.recordSupplierPayment(
+      pool,
+      id,
+      validated as any,
+      userId
+    );
+
+    res.status(201).json({
+      success: true,
+      data: payment,
+      message: 'Payment recorded successfully',
+    });
+  } catch (error) {
+    console.error('Controller error:', error);
+
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        success: false,
+        error: error.issues[0].message,
+      });
+      return;
+    }
+
+    if (error instanceof Error && error.message === 'Supplier not found') {
+      res.status(404).json({
+        success: false,
+        error: 'Supplier not found',
+      });
+      return;
+    }
+
+    res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to record payment',
+    });
+  }
+}
+
+/**
+ * GET /api/suppliers/:id/payments
+ * Get payment history for a supplier
+ */
+export async function getSupplierPayments(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    const payments = await suppliersService.getSupplierPayments(pool, id);
+
+    res.json({
+      success: true,
+      data: payments,
+    });
+  } catch (error) {
+    console.error('Controller error:', error);
+
+    if (error instanceof Error && error.message === 'Supplier not found') {
+      res.status(404).json({
+        success: false,
+        error: 'Supplier not found',
+      });
+      return;
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve supplier payments',
     });
   }
 }

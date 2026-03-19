@@ -22,4 +22,8 @@ router.post('/', requireManager, suppliersController.createSupplier);
 router.put('/:id', requireManager, suppliersController.updateSupplier);
 router.delete('/:id', requireManager, suppliersController.deleteSupplier);
 
+// Supplier payments
+router.get('/:id/payments', suppliersController.getSupplierPayments);
+router.post('/:id/payments', requireManager, suppliersController.recordSupplierPayment);
+
 export default router;

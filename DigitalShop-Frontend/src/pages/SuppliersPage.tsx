@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { suppliersApi, purchasesApi } from '../lib/api';
 import { usePermissions } from '../hooks/usePermissions';
 import { useSettings } from '../contexts/SettingsContext';
+import { RecordSupplierPaymentModal } from '../components/suppliers/RecordSupplierPaymentModal';
 
 // Payment Terms options
 const PAYMENT_TERMS = [
@@ -57,6 +58,7 @@ export function SuppliersPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<any>(null);
   const [viewingSupplier, setViewingSupplier] = useState<any>(null);
+  const [payingSupplier, setPayingSupplier] = useState<any>(null);
 
   // Filter/Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -529,6 +531,15 @@ export function SuppliersPage() {
                           >
                             👁️
                           </button>
+                          {perms.canEditSupplier && supplier.balance > 0 && (
+                          <button
+                            onClick={() => setPayingSupplier(supplier)}
+                            className="text-green-600 hover:text-green-900"
+                            title="Record Payment"
+                          >
+                            💰
+                          </button>
+                          )}
                           {perms.canEditSupplier && (
                           <button
                             onClick={() => setEditingSupplier(supplier)}
@@ -634,6 +645,14 @@ export function SuppliersPage() {
                   >
                     👁️ View
                   </button>
+                  {perms.canEditSupplier && supplier.balance > 0 && (
+                  <button
+                    onClick={() => setPayingSupplier(supplier)}
+                    className="flex-1 px-3 py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
+                  >
+                    💰 Pay
+                  </button>
+                  )}
                   {perms.canEditSupplier && (
                   <button
                     onClick={() => setEditingSupplier(supplier)}
@@ -678,6 +697,10 @@ export function SuppliersPage() {
             setEditingSupplier(viewingSupplier);
             setViewingSupplier(null);
           }}
+          onPay={() => {
+            setPayingSupplier(viewingSupplier);
+            setViewingSupplier(null);
+          }}
         />
       )}
 
@@ -692,6 +715,19 @@ export function SuppliersPage() {
           onSubmit={editingSupplier ? handleUpdate : handleCreate}
         />
       )}
+
+      {/* Payment Modal */}
+      {payingSupplier && (
+        <RecordSupplierPaymentModal
+          supplier={payingSupplier}
+          onClose={() => setPayingSupplier(null)}
+          onSuccess={() => {
+            setPayingSupplier(null);
+            loadSuppliers();
+            alert('Payment recorded successfully!');
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -701,15 +737,18 @@ interface SupplierDetailModalProps {
   supplier: any;
   onClose: () => void;
   onEdit: () => void;
+  onPay: () => void;
 }
 
-function SupplierDetailModal({ supplier, onClose, onEdit }: SupplierDetailModalProps) {
+function SupplierDetailModal({ supplier, onClose, onEdit, onPay }: SupplierDetailModalProps) {
   const { settings } = useSettings();
   const fmtCurrency = (amount: number) => formatUGX(amount, settings.currencySymbol);
   const modalPerms = usePermissions();
-  const [activeTab, setActiveTab] = useState<'info' | 'orders'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'orders' | 'payments'>('info');
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
 
   const paymentTermInfo = PAYMENT_TERMS.find((t) => t.value === supplier.paymentTerms);
 
@@ -729,9 +768,26 @@ function SupplierDetailModal({ supplier, onClose, onEdit }: SupplierDetailModalP
     }
   };
 
+  // Load payments for this supplier
+  const loadPayments = async () => {
+    if (payments.length > 0) return;
+    setLoadingPayments(true);
+    try {
+      const response = await suppliersApi.getPayments(supplier.id);
+      if (response.data.success) {
+        setPayments(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to load payments:', error);
+    } finally {
+      setLoadingPayments(false);
+    }
+  };
+
   const handleTabChange = (tab: typeof activeTab) => {
     setActiveTab(tab);
     if (tab === 'orders') loadOrders();
+    if (tab === 'payments') loadPayments();
   };
 
   return (
@@ -764,6 +820,14 @@ function SupplierDetailModal({ supplier, onClose, onEdit }: SupplierDetailModalP
             }`}
           >
             📦 Purchase Orders
+          </button>
+          <button
+            onClick={() => handleTabChange('payments')}
+            className={`px-4 py-2 font-medium ${
+              activeTab === 'payments' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            💰 Payments
           </button>
         </div>
 
@@ -908,6 +972,41 @@ function SupplierDetailModal({ supplier, onClose, onEdit }: SupplierDetailModalP
               )}
             </div>
           )}
+
+          {activeTab === 'payments' && (
+            <div>
+              {loadingPayments ? (
+                <div className="text-center py-12">
+                  <div className="text-gray-600">Loading payments...</div>
+                </div>
+              ) : payments.length > 0 ? (
+                <div className="space-y-3">
+                  {payments.map((payment: any) => (
+                    <div key={payment.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <div className="font-semibold text-green-600">{payment.receiptNumber}</div>
+                          <div className="text-sm text-gray-600">{formatDate(payment.paymentDate)}</div>
+                        </div>
+                        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                          {payment.paymentMethod?.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <div className="text-sm text-gray-600">
+                          {payment.referenceNumber && <>Ref: {payment.referenceNumber}</>}
+                          {payment.notes && <span className="ml-2 text-gray-400">• {payment.notes}</span>}
+                        </div>
+                        <div className="text-lg font-bold text-green-700">{fmtCurrency(payment.amount)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">No payments recorded yet</div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -915,6 +1014,14 @@ function SupplierDetailModal({ supplier, onClose, onEdit }: SupplierDetailModalP
           <button onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
             Close
           </button>
+          {modalPerms.canEditSupplier && supplier.balance > 0 && (
+            <button
+              onClick={onPay}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+            >
+              💰 Record Payment
+            </button>
+          )}
           {modalPerms.canEditSupplier && (
             <button
               onClick={onEdit}
