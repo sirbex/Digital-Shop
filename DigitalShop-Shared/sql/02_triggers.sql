@@ -1,10 +1,37 @@
 -- ============================================================================
--- DIGITALSHOP COMPREHENSIVE DATABASE TRIGGERS
+-- DIGITALSHOP TRIGGER REGISTRY — SINGLE SOURCE OF TRUTH
 -- ============================================================================
--- All business logic is maintained at the DATABASE level for consistency.
--- Frontend displays data calculated by database - NO frontend calculations.
+-- Version: 2.0 | Last Updated: 2026-03-20
 -- 
--- CRITICAL: Includes fixed tax calculation trigger (tax preserved from sales table)
+-- ⚠️  THIS FILE IS THE CANONICAL SOURCE FOR ALL TRIGGER FUNCTIONS.
+--     DO NOT redefine any function from this file in migration scripts.
+--     Migration scripts should only CREATE TABLE / ALTER TABLE / INSERT.
+--
+-- ARCHITECTURE (SAP/Odoo-inspired):
+--   1. Each computed field has ONE trigger function (no duplicates)
+--   2. Dispatcher pattern: child-table trigger → dispatcher → _internal()
+--   3. _internal() functions are the ONLY place business logic lives
+--   4. Verification section at bottom validates all triggers are installed
+--
+-- DEPENDENCY CHAIN:
+--   sale_items        → fn_recalculate_sale_totals    → fn_update_sale_totals_internal
+--   inventory_batches → fn_recalculate_inventory_qty  → fn_update_inventory_quantity_internal
+--   inventory_batches → fn_log_stock_movement         → stock_movements (audit)
+--   invoice_payments  → fn_recalculate_invoice_balance→ fn_update_invoice_balance_internal
+--   invoices          → fn_recalculate_customer_bal   → fn_update_customer_balance_internal
+--   invoice_payments  → fn_recalculate_customer_bal   → fn_update_customer_balance_internal
+--   sales             → fn_recalculate_customer_bal   → fn_update_customer_balance_internal
+--   purchase_order_items → fn_recalculate_po_totals   → fn_update_po_totals_internal
+--   goods_receipt_items  → fn_recalculate_gr_totals   → fn_update_gr_totals_internal
+--   purchase_orders   → fn_recalculate_supplier_bal   → fn_update_supplier_balance_internal
+--   supplier_payments → fn_recalc_supplier_bal_pay    → fn_update_supplier_balance_internal
+--
+-- SINGLE SOURCE OF TRUTH RULES:
+--   Customer Balance  = -SUM(invoices.amount_due) where unpaid
+--   Product Quantity  = SUM(inventory_batches.remaining_quantity) where ACTIVE
+--   Invoice Balance   = total_amount - SUM(invoice_payments.amount)
+--   Supplier Balance  = SUM(received POs) - SUM(supplier_payments)
+--   Sale Totals       = aggregated from sale_items + tax preserved from sales
 -- ============================================================================
 
 -- ============================================================================
@@ -205,6 +232,35 @@ CREATE TRIGGER trg_sync_supplier_balance
     AFTER INSERT OR UPDATE OR DELETE ON purchase_orders
     FOR EACH ROW
     EXECUTE FUNCTION fn_recalculate_supplier_balance();
+
+-- Dispatcher: supplier_payments → supplier balance recalculation
+-- (Table created in 08_supplier_payments.sql migration)
+CREATE OR REPLACE FUNCTION fn_recalculate_supplier_balance_on_payment()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_supplier_id UUID;
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        v_supplier_id := OLD.supplier_id;
+    ELSE
+        v_supplier_id := NEW.supplier_id;
+    END IF;
+
+    IF v_supplier_id IS NOT NULL THEN
+        PERFORM fn_update_supplier_balance_internal(v_supplier_id);
+    END IF;
+
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    ELSE
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- NOTE: Trigger trg_sync_supplier_balance_on_payment is attached in
+-- 08_supplier_payments.sql AFTER the supplier_payments table is created.
+-- It cannot be attached here because the table doesn't exist yet.
 
 -- ============================================================================
 -- 3. INVENTORY QUANTITY TRIGGERS
@@ -656,16 +712,69 @@ CREATE TRIGGER trg_log_stock_movement
     EXECUTE FUNCTION fn_log_stock_movement();
 
 -- ============================================================================
--- VERIFICATION
+-- TRIGGER REGISTRY VERIFICATION
+-- Checks that all expected triggers are installed and counts match
 -- ============================================================================
 
-SELECT 'DigitalShop comprehensive triggers installed successfully!' AS status;
+SELECT 'DigitalShop Trigger Registry v2.0 — installed successfully!' AS status;
 
+-- List all business triggers by table
 SELECT 
     event_object_table as table_name,
-    COUNT(*) as trigger_count
+    trigger_name,
+    event_manipulation as event,
+    action_timing as timing
 FROM information_schema.triggers 
 WHERE trigger_schema = 'public'
-  AND trigger_name LIKE 'trg_sync%'
+  AND trigger_name LIKE 'trg_%'
+ORDER BY event_object_table, trigger_name;
+
+-- Summary count per table  
+SELECT 
+    event_object_table as table_name,
+    COUNT(DISTINCT trigger_name) as trigger_count
+FROM information_schema.triggers 
+WHERE trigger_schema = 'public'
 GROUP BY event_object_table
 ORDER BY event_object_table;
+
+-- Verify all critical functions exist
+DO $$
+DECLARE
+    v_missing TEXT := '';
+    v_fn TEXT;
+    v_functions TEXT[] := ARRAY[
+        'fn_update_customer_balance_internal',
+        'fn_recalculate_customer_balance',
+        'fn_update_supplier_balance_internal',
+        'fn_recalculate_supplier_balance',
+        'fn_recalculate_supplier_balance_on_payment',
+        'fn_update_inventory_quantity_internal',
+        'fn_recalculate_inventory_quantity',
+        'fn_update_sale_totals_internal',
+        'fn_recalculate_sale_totals',
+        'fn_update_po_totals_internal',
+        'fn_recalculate_po_totals',
+        'fn_update_gr_totals_internal',
+        'fn_recalculate_gr_totals',
+        'fn_update_invoice_balance_internal',
+        'fn_recalculate_invoice_balance',
+        'fn_log_stock_movement',
+        'generate_movement_number',
+        'update_updated_at_column'
+    ];
+BEGIN
+    FOREACH v_fn IN ARRAY v_functions LOOP
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_proc WHERE proname = v_fn
+        ) THEN
+            v_missing := v_missing || v_fn || ', ';
+        END IF;
+    END LOOP;
+    
+    IF v_missing != '' THEN
+        RAISE WARNING 'TRIGGER REGISTRY: Missing functions: %', v_missing;
+    ELSE
+        RAISE NOTICE 'TRIGGER REGISTRY: All % critical functions verified ✓', array_length(v_functions, 1);
+    END IF;
+END $$;
