@@ -140,22 +140,25 @@ export const reportsRepository = {
         COALESCE(MAX(s.total_amount), 0) as "largestTransaction",
         COALESCE(MIN(s.total_amount), 0) as "smallestTransaction",
         COALESCE(SUM(s.amount_paid), 0) as "totalCollected",
-        -- Payment method breakdown
-        SUM(CASE WHEN s.payment_method = 'CASH' THEN s.amount_paid - COALESCE(s.change_amount, 0) - COALESCE(s.change_amount, 0) ELSE 0 END) as "cashCollected",
+        -- Payment method breakdown (cash capped at sale total for data integrity)
+        SUM(CASE WHEN s.payment_method = 'CASH' 
+            THEN LEAST(s.total_amount, GREATEST(0, s.amount_paid - COALESCE(s.change_amount, 0))) 
+            ELSE 0 END) as "cashCollected",
         SUM(CASE WHEN s.payment_method = 'CARD' THEN s.amount_paid ELSE 0 END) as "cardCollected",
         SUM(CASE WHEN s.payment_method = 'MOBILE_MONEY' THEN s.amount_paid ELSE 0 END) as "mobileMoneyCollected",
         COUNT(CASE WHEN s.payment_method = 'CASH' THEN 1 END) as "cashCount",
         COUNT(CASE WHEN s.payment_method = 'CARD' THEN 1 END) as "cardCount",
         COUNT(CASE WHEN s.payment_method = 'MOBILE_MONEY' THEN 1 END) as "mobileMoneyCount",
-        COUNT(CASE WHEN s.payment_method = 'CREDIT' THEN 1 END) as "creditCount",
-        -- Credit sales from invoices (single source of truth)
-        (
-          SELECT COALESCE(SUM(i.total_amount), 0)
-          FROM invoices i
-          LEFT JOIN sales ss ON i.sale_id = ss.id
-          WHERE DATE(COALESCE(ss.sale_date, i.issue_date)) >= $1
-            AND DATE(COALESCE(ss.sale_date, i.issue_date)) <= $2
-        ) as "totalCreditSales",
+        -- Credit = Net Sales minus all collected (guaranteed to balance: Cash+Card+Mobile+Credit = Net Sales)
+        COALESCE(SUM(s.total_amount), 0)
+          - COALESCE(SUM(CASE WHEN s.payment_method = 'CASH' 
+              THEN LEAST(s.total_amount, GREATEST(0, s.amount_paid - COALESCE(s.change_amount, 0))) 
+              ELSE 0 END), 0)
+          - COALESCE(SUM(CASE WHEN s.payment_method = 'CARD' THEN s.amount_paid ELSE 0 END), 0)
+          - COALESCE(SUM(CASE WHEN s.payment_method = 'MOBILE_MONEY' THEN s.amount_paid ELSE 0 END), 0)
+          as "totalCreditSales",
+        COUNT(CASE WHEN s.total_amount > COALESCE(s.amount_paid, 0) + 0.01 THEN 1 END) as "creditCount",
+        -- Credit outstanding from invoices (what's still owed today)
         (
           SELECT COALESCE(SUM(i.amount_due), 0)
           FROM invoices i
@@ -1131,7 +1134,7 @@ export const reportsRepository = {
           THEN (SUM(s.profit) / SUM(s.subtotal - s.discount_amount)) * 100
           ELSE 0
         END as "avgProfitMargin",
-        SUM(CASE WHEN s.payment_method = 'CASH' THEN s.amount_paid ELSE 0 END) as "cashCollected",
+        SUM(CASE WHEN s.payment_method = 'CASH' THEN s.amount_paid - COALESCE(s.change_amount, 0) ELSE 0 END) as "cashCollected",
         SUM(CASE WHEN s.payment_method = 'CARD' THEN s.amount_paid ELSE 0 END) as "cardCollected",
         SUM(CASE WHEN s.payment_method = 'MOBILE_MONEY' THEN s.amount_paid ELSE 0 END) as "mobileMoneyCollected",
         COUNT(CASE WHEN s.payment_method = 'CREDIT' THEN 1 END) as "creditSalesCount",
