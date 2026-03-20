@@ -168,6 +168,7 @@ CREATE OR REPLACE FUNCTION fn_update_supplier_balance_internal(p_supplier_id UUI
 RETURNS VOID AS $$
 DECLARE
     v_total_purchases NUMERIC;
+    v_total_payments NUMERIC;
     v_new_balance NUMERIC;
 BEGIN
     -- Sum all received purchase orders
@@ -177,18 +178,24 @@ BEGIN
     FROM purchase_orders
     WHERE supplier_id = p_supplier_id
       AND status IN ('RECEIVED', 'PARTIAL');
-    
-    -- For this simplified version, balance = unpaid purchases
-    -- (In full system, would subtract supplier payments)
-    v_new_balance := v_total_purchases;
-    
+
+    -- Sum all payments made to this supplier
+    SELECT COALESCE(SUM(amount), 0)
+    INTO v_total_payments
+    FROM supplier_payments
+    WHERE supplier_id = p_supplier_id;
+
+    -- Balance = purchases - payments (positive = we still owe)
+    v_new_balance := v_total_purchases - v_total_payments;
+
     -- Update supplier balance
     UPDATE suppliers
     SET balance = v_new_balance,
         updated_at = CURRENT_TIMESTAMP
     WHERE id = p_supplier_id;
-    
-    RAISE NOTICE 'Updated supplier % balance to %', p_supplier_id, v_new_balance;
+
+    RAISE NOTICE 'Updated supplier % balance to % (purchases: %, payments: %)',
+        p_supplier_id, v_new_balance, v_total_purchases, v_total_payments;
 END;
 $$ LANGUAGE plpgsql;
 
