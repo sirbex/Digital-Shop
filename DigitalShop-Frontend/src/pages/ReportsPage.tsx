@@ -2781,7 +2781,7 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
     if (!Array.isArray(reportData) || reportData.length === 0) {
       return <div className="text-center py-12 text-gray-500">No sales data for this period</div>;
     }
-    const total = reportData.reduce((sum: number, row: any) => sum + parseFloat(row.totalAmount || 0), 0);
+    const total = reportData.reduce((sum: number, row: any) => sum + parseFloat(row.totalSales || 0), 0);
     return (
       <div className="overflow-x-auto -mx-3 sm:mx-0">
         <table className="w-full text-xs sm:text-sm min-w-[500px]">
@@ -2799,9 +2799,9 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
               <tr key={row.paymentMethod} className="hover:bg-gray-50">
                 <td className="px-3 py-2 font-medium">{row.paymentMethod}</td>
                 <td className="px-3 py-2 text-right">{row.transactionCount}</td>
-                <td className="px-3 py-2 text-right font-medium">{parseFloat(row.totalAmount).toLocaleString()}</td>
-                <td className="px-3 py-2 text-right">{((parseFloat(row.totalAmount) / total) * 100).toFixed(1)}%</td>
-                <td className="px-3 py-2 text-right">{parseFloat(row.avgAmount).toLocaleString()}</td>
+                <td className="px-3 py-2 text-right font-medium">{parseFloat(row.totalSales || 0).toLocaleString()}</td>
+                <td className="px-3 py-2 text-right">{total > 0 ? ((parseFloat(row.totalSales || 0) / total) * 100).toFixed(1) : '0.0'}%</td>
+                <td className="px-3 py-2 text-right">{parseFloat(row.avgTransactionValue || 0).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
