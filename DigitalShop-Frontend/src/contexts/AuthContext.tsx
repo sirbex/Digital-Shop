@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { authApi } from '../lib/api';
+
+const IDLE_WARNING_MS = 4 * 60 * 1000; // 4 minutes → show warning
+const IDLE_LOGOUT_MS = 5 * 60 * 1000;  // 5 minutes → auto logout
 
 interface User {
   id: string;
@@ -22,6 +25,9 @@ interface AuthContextType {
   hasAllPermissions: (...keys: string[]) => boolean;
   /** Check if the current user has ANY of the given permission keys */
   hasAnyPermission: (...keys: string[]) => boolean;
+  idleWarning: boolean;
+  idleCountdown: number;
+  dismissIdleWarning: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -104,6 +110,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setPermissions([]);
   };
 
+  // ── Idle auto-logout (4 min warning, 5 min logout) ──
+  const [idleWarning, setIdleWarning] = useState(false);
+  const [idleCountdown, setIdleCountdown] = useState(60);
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const logoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearIdleTimers = useCallback(() => {
+    if (warningTimerRef.current) { clearTimeout(warningTimerRef.current); warningTimerRef.current = null; }
+    if (logoutTimerRef.current) { clearTimeout(logoutTimerRef.current); logoutTimerRef.current = null; }
+    if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
+  }, []);
+
+  const resetIdleTimers = useCallback(() => {
+    clearIdleTimers();
+    setIdleWarning(false);
+    setIdleCountdown(60);
+
+    // After 4 min of inactivity → show warning
+    warningTimerRef.current = setTimeout(() => {
+      setIdleWarning(true);
+      setIdleCountdown(60);
+      // Start countdown
+      const start = Date.now();
+      countdownRef.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - start) / 1000);
+        setIdleCountdown(Math.max(0, 60 - elapsed));
+      }, 1000);
+    }, IDLE_WARNING_MS);
+
+    // After 5 min of inactivity → auto logout
+    logoutTimerRef.current = setTimeout(() => {
+      clearIdleTimers();
+      setIdleWarning(false);
+      logout();
+    }, IDLE_LOGOUT_MS);
+  }, [clearIdleTimers]);
+
+  useEffect(() => {
+    if (!token) {
+      clearIdleTimers();
+      setIdleWarning(false);
+      return;
+    }
+
+    const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'] as const;
+    let throttleTimer: ReturnType<typeof setTimeout> | null = null;
+    const onActivity = () => {
+      if (throttleTimer) return;
+      throttleTimer = setTimeout(() => { throttleTimer = null; }, 1000);
+      resetIdleTimers();
+    };
+
+    ACTIVITY_EVENTS.forEach((e) => window.addEventListener(e, onActivity, { passive: true }));
+    resetIdleTimers();
+
+    return () => {
+      ACTIVITY_EVENTS.forEach((e) => window.removeEventListener(e, onActivity));
+      if (throttleTimer) clearTimeout(throttleTimer);
+      clearIdleTimers();
+    };
+  }, [token, resetIdleTimers, clearIdleTimers]);
+
+  const dismissIdleWarning = useCallback(() => {
+    resetIdleTimers();
+  }, [resetIdleTimers]);
+
   // ----- Permission helpers (memoised set for O(1) lookups) -----
   const permissionSet = useMemo(() => new Set(permissions), [permissions]);
 
@@ -139,9 +212,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         hasPermission,
         hasAllPermissions,
         hasAnyPermission,
+        idleWarning,
+        idleCountdown,
+        dismissIdleWarning,
       }}
     >
       {children}
+      {idleWarning && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 text-center">
+            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+              <svg className="w-7 h-7 text-amber-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Session Timeout Warning</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              You will be logged out in <span className="font-bold text-red-600 text-base">{idleCountdown}s</span> due to inactivity.
+            </p>
+            <button
+              onClick={dismissIdleWarning}
+              className="w-full px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              I'm still here
+            </button>
+          </div>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 }
