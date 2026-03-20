@@ -5,13 +5,17 @@
 -- ============================================================================
 
 -- Quotation status enum
-CREATE TYPE quotation_status AS ENUM ('DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'CONVERTED');
+DO $$ BEGIN
+  CREATE TYPE quotation_status AS ENUM ('DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'CONVERTED');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Quotation number sequence
 CREATE SEQUENCE IF NOT EXISTS quotation_number_seq START WITH 1;
 
 -- Quotations table
-CREATE TABLE quotations (
+CREATE TABLE IF NOT EXISTS quotations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     quotation_number VARCHAR(50) UNIQUE NOT NULL,
     customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
@@ -56,6 +60,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_quotation_number ON quotations;
 CREATE TRIGGER trg_quotation_number
     BEFORE INSERT ON quotations
     FOR EACH ROW
@@ -70,14 +75,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_quotation_updated_at ON quotations;
 CREATE TRIGGER trg_quotation_updated_at
     BEFORE UPDATE ON quotations
     FOR EACH ROW
     EXECUTE FUNCTION update_quotation_timestamp();
 
 -- Indexes
-CREATE INDEX idx_quotations_customer_id ON quotations(customer_id);
-CREATE INDEX idx_quotations_status ON quotations(status);
-CREATE INDEX idx_quotations_created_at ON quotations(created_at);
-CREATE INDEX idx_quotations_valid_until ON quotations(valid_until);
-CREATE INDEX idx_quotations_converted_sale_id ON quotations(converted_sale_id);
+CREATE INDEX IF NOT EXISTS idx_quotations_customer_id ON quotations(customer_id);
+CREATE INDEX IF NOT EXISTS idx_quotations_status ON quotations(status);
+CREATE INDEX IF NOT EXISTS idx_quotations_created_at ON quotations(created_at);
+CREATE INDEX IF NOT EXISTS idx_quotations_valid_until ON quotations(valid_until);
+CREATE INDEX IF NOT EXISTS idx_quotations_converted_sale_id ON quotations(converted_sale_id);

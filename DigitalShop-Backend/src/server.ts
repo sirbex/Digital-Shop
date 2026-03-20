@@ -14,6 +14,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { logger } from './utils/logger.js';
 import pool from './db/pool.js';
+import { runMigrations } from './db/migrate.js';
 
 // Load environment variables from Backend directory regardless of CWD
 const __filename = fileURLToPath(import.meta.url);
@@ -189,13 +190,23 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 // SERVER STARTUP
 // ============================================================================
 
-app.listen(PORT, () => {
-    logger.info('✨ DigitalShop Backend Server');
-    logger.info(`🚀 Server running on port ${PORT}`);
-    logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    logger.info(`📡 API: http://localhost:${PORT}/api`);
-    logger.info(`❤️  Health: http://localhost:${PORT}/health`);
-});
+// Run migrations then start listening
+runMigrations(pool)
+    .then(() => {
+        app.listen(PORT, () => {
+            logger.info('✨ DigitalShop Backend Server');
+            logger.info(`🚀 Server running on port ${PORT}`);
+            logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+            logger.info(`📡 API: http://localhost:${PORT}/api`);
+            logger.info(`❤️  Health: http://localhost:${PORT}/health`);
+        });
+    })
+    .catch((err) => {
+        logger.error('Migration failed, starting server anyway:', err);
+        app.listen(PORT, () => {
+            logger.info(`🚀 Server running on port ${PORT} (migrations had errors)`);
+        });
+    });
 
 // ============================================================================
 // PROCESS EVENT HANDLERS
