@@ -1,16 +1,10 @@
-# ============================================================================
-# UNIFIED DIGITALSHOP DEPLOYMENT
+# DigitalShop Unified Deployment
 # Backend serves API + Frontend static files
-# ============================================================================
-
-FROM node:18-alpine AS build
+FROM node:18
 
 WORKDIR /app
 
-# Install build tools needed for native modules (bcrypt)
-RUN apk add --no-cache python3 make g++
-
-# Copy everything
+# Copy all source files
 COPY . .
 
 # Install dependencies for all packages
@@ -18,32 +12,14 @@ RUN cd DigitalShop-Shared && npm install
 RUN cd DigitalShop-Frontend && npm install
 RUN cd DigitalShop-Backend && npm install
 
-# Build shared types first
+# Build in order: Shared types -> Frontend -> Backend
 RUN cd DigitalShop-Shared && npx tsc
-
-# Build frontend (Vite)
 RUN cd DigitalShop-Frontend && npx vite build
-
-# Build backend (TypeScript)
 RUN cd DigitalShop-Backend && npx tsc
 
-# ============================================================================
-# Production stage
-# ============================================================================
-FROM node:18-alpine
-
-# Runtime libs for native modules (bcrypt)
-RUN apk add --no-cache libstdc++
-
-WORKDIR /app
-
-# Copy built artifacts and dependencies
-COPY --from=build /app/DigitalShop-Backend/dist ./DigitalShop-Backend/dist
-COPY --from=build /app/DigitalShop-Backend/node_modules ./DigitalShop-Backend/node_modules
-COPY --from=build /app/DigitalShop-Backend/package.json ./DigitalShop-Backend/package.json
-COPY --from=build /app/DigitalShop-Frontend/dist ./DigitalShop-Frontend/dist
-COPY --from=build /app/DigitalShop-Shared/sql ./DigitalShop-Shared/sql
-
-EXPOSE 8340
+# Clean up dev dependencies and source to reduce image size
+RUN rm -rf DigitalShop-Frontend/node_modules DigitalShop-Frontend/src \
+    DigitalShop-Shared/node_modules DigitalShop-Shared/types \
+    DigitalShop-Backend/src
 
 CMD ["node", "DigitalShop-Backend/dist/server.js"]
