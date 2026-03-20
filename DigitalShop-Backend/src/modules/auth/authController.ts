@@ -51,11 +51,21 @@ export async function register(req: Request, res: Response): Promise<void> {
     // Validate request body with shared schema
     const data = UserSchemas.CreateUserSchema.parse(req.body);
 
-    // Only ADMIN can create ADMIN/MANAGER users
-    if ((data.role === 'ADMIN' || data.role === 'MANAGER') && req.user?.role !== 'ADMIN') {
+    // Only SUPER_ADMIN/ADMIN can create SUPER_ADMIN/ADMIN/MANAGER users
+    if ((data.role === 'SUPER_ADMIN' || data.role === 'ADMIN' || data.role === 'MANAGER') && 
+        req.user?.role !== 'SUPER_ADMIN' && req.user?.role !== 'ADMIN') {
       res.status(403).json({
         success: false,
         error: 'Only administrators can create admin or manager accounts',
+      });
+      return;
+    }
+
+    // Only SUPER_ADMIN can create another SUPER_ADMIN
+    if (data.role === 'SUPER_ADMIN' && req.user?.role !== 'SUPER_ADMIN') {
+      res.status(403).json({
+        success: false,
+        error: 'Only Super Admins can create Super Admin accounts',
       });
       return;
     }

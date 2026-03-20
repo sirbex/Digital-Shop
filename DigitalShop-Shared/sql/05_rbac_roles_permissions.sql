@@ -177,6 +177,11 @@ ON CONFLICT (key) DO NOTHING;
 -- 6. SEED: DEFAULT ROLES
 -- ============================================================================
 
+-- Super Administrator (highest privilege level)
+INSERT INTO roles (id, name, description, is_system_role) VALUES
+    ('00000000-0000-0000-0000-000000000000', 'Super Administrator', 'Unrestricted system access — highest privilege level', true)
+ON CONFLICT (name) DO NOTHING;
+
 -- Administrator (all permissions)
 INSERT INTO roles (id, name, description, is_system_role) VALUES
     ('00000000-0000-0000-0000-000000000001', 'Administrator', 'Full system access — all permissions granted', true)
@@ -200,6 +205,13 @@ ON CONFLICT (name) DO NOTHING;
 -- ============================================================================
 -- 7. SEED: ROLE → PERMISSION ASSIGNMENTS
 -- ============================================================================
+
+-- ──────────────────────────────────────────────────────────────────────────
+-- Super Administrator: ALL permissions (highest privilege level)
+-- ──────────────────────────────────────────────────────────────────────────
+INSERT INTO role_permissions (role_id, permission_key)
+SELECT '00000000-0000-0000-0000-000000000000', key FROM permissions
+ON CONFLICT DO NOTHING;
 
 -- ──────────────────────────────────────────────────────────────────────────
 -- Administrator: ALL permissions (full unrestricted access)

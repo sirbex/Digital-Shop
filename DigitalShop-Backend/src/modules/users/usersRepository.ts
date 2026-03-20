@@ -6,7 +6,7 @@ export interface UserRow {
   email: string;
   password_hash: string;
   full_name: string;
-  role: 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -14,7 +14,7 @@ export interface UserRow {
 
 export interface UpdateUserParams {
   fullName?: string;
-  role?: 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
+  role?: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
   isActive?: boolean;
 }
 

@@ -12,7 +12,7 @@ interface User {
   id: string;
   email: string;
   fullName: string;
-  role: 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -23,6 +23,7 @@ interface UserStats {
   active: number;
   inactive: number;
   byRole: {
+    SUPER_ADMIN: number;
     ADMIN: number;
     MANAGER: number;
     CASHIER: number;
@@ -34,13 +35,13 @@ interface CreateUserData {
   email: string;
   password: string;
   fullName: string;
-  role: 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
 }
 
 interface UpdateUserData {
   email?: string;
   fullName?: string;
-  role?: 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
+  role?: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
   isActive?: boolean;
 }
 
@@ -56,6 +57,7 @@ const formatDate = (dateString: string | null | undefined): string => {
 
 const getRoleBadgeColor = (role: string): string => {
   switch (role) {
+    case 'SUPER_ADMIN': return 'bg-yellow-100 text-yellow-800';
     case 'ADMIN': return 'bg-red-100 text-red-800';
     case 'MANAGER': return 'bg-purple-100 text-purple-800';
     case 'CASHIER': return 'bg-blue-100 text-blue-800';
@@ -255,6 +257,7 @@ export function UsersPage() {
               <div>
                 <p className="text-sm text-gray-500">By Role</p>
                 <div className="flex gap-2 mt-1 flex-wrap">
+                  <span className="text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">{stats.byRole.SUPER_ADMIN} SA</span>
                   <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded">{stats.byRole.ADMIN} Admin</span>
                   <span className="text-xs bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">{stats.byRole.MANAGER} Mgr</span>
                   <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">{stats.byRole.CASHIER} Cash</span>
@@ -304,6 +307,7 @@ export function UsersPage() {
                 aria-label="Filter by role"
               >
                 <option value="ALL">All Roles</option>
+                <option value="SUPER_ADMIN">Super Admin</option>
                 <option value="ADMIN">Admin</option>
                 <option value="MANAGER">Manager</option>
                 <option value="CASHIER">Cashier</option>
@@ -571,6 +575,7 @@ function CreateUserModal({
               <option value="CASHIER">Cashier</option>
               <option value="MANAGER">Manager</option>
               <option value="ADMIN">Admin</option>
+              <option value="SUPER_ADMIN">Super Admin</option>
             </select>
           </div>
 
@@ -677,6 +682,7 @@ function EditUserModal({
               <option value="CASHIER">Cashier</option>
               <option value="MANAGER">Manager</option>
               <option value="ADMIN">Admin</option>
+              <option value="SUPER_ADMIN">Super Admin</option>
             </select>
           </div>
 

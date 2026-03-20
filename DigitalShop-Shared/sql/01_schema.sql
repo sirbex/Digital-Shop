@@ -16,7 +16,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm"; -- For text search performance
 -- ============================================================================
 
 -- User roles
-CREATE TYPE user_role AS ENUM ('ADMIN', 'MANAGER', 'CASHIER', 'STAFF');
+CREATE TYPE user_role AS ENUM ('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'CASHIER', 'STAFF');
 
 -- Sale status
 CREATE TYPE sale_status AS ENUM ('COMPLETED', 'VOID', 'REFUNDED');
@@ -854,7 +854,7 @@ CREATE TRIGGER update_sessions_updated_at BEFORE UPDATE ON cash_register_session
 -- Default admin user (password: admin123)
 -- Hash generated with bcrypt rounds=10
 INSERT INTO users (email, password_hash, full_name, role) VALUES
-('admin@digitalshop.com', '$2b$10$CDa/2yDxiwf9pqZFbWvJLuiPxlgOypZpTKi2HPRLbocTvebohBLWC', 'System Administrator', 'ADMIN');
+('admin@digitalshop.com', '$2b$10$CDa/2yDxiwf9pqZFbWvJLuiPxlgOypZpTKi2HPRLbocTvebohBLWC', 'System Administrator', 'SUPER_ADMIN');
 
 -- Default customer groups
 INSERT INTO customer_groups (name, description, discount_percentage) VALUES

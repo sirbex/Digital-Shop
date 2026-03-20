@@ -14,7 +14,7 @@ declare global {
             user?: {
                 id: string;
                 email: string;
-                role: 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
+                role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
             };
         }
     }
@@ -51,7 +51,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
             userId?: string;  // Old token format
             id?: string;      // New token format (if updated)
             email: string;
-            role: 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
+            role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
         };
 
         req.user = {
@@ -84,7 +84,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
 /**
  * Require specific roles
  */
-export function requireRole(...roles: Array<'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF'>) {
+export function requireRole(...roles: Array<'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF'>) {
     return (req: Request, res: Response, next: NextFunction) => {
         if (!req.user) {
             return res.status(401).json({
@@ -109,9 +109,14 @@ export function requireRole(...roles: Array<'ADMIN' | 'MANAGER' | 'CASHIER' | 'S
 /**
  * Require admin role
  */
-export const requireAdmin = requireRole('ADMIN');
+export const requireAdmin = requireRole('SUPER_ADMIN', 'ADMIN');
 
 /**
  * Require admin or manager role
  */
-export const requireManager = requireRole('ADMIN', 'MANAGER');
+export const requireManager = requireRole('SUPER_ADMIN', 'ADMIN', 'MANAGER');
+
+/**
+ * Require super admin role only
+ */
+export const requireSuperAdmin = requireRole('SUPER_ADMIN');

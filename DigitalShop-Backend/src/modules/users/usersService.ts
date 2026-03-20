@@ -9,7 +9,7 @@ export interface User {
   id: string;
   email: string;
   fullName: string;
-  role: 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -17,7 +17,7 @@ export interface User {
 
 export interface UpdateUserData {
   fullName?: string;
-  role?: 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
+  role?: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
   isActive?: boolean;
 }
 

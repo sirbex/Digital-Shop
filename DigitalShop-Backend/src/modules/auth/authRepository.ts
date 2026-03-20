@@ -6,7 +6,7 @@ export interface UserRow {
   email: string;
   password_hash: string;
   full_name: string;
-  role: 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -16,7 +16,7 @@ export interface CreateUserParams {
   email: string;
   passwordHash: string;
   fullName: string;
-  role: 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
 }
 
 /**
@@ -108,6 +108,7 @@ export async function emailExists(pool: Pool, email: string): Promise<boolean> {
  * Map user_role ENUM to RBAC roles table name
  */
 const ROLE_NAME_MAP: Record<string, string> = {
+  SUPER_ADMIN: 'Super Administrator',
   ADMIN: 'Administrator',
   MANAGER: 'Manager',
   CASHIER: 'Cashier',

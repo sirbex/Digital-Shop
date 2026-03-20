@@ -8,7 +8,7 @@ interface User {
   id: string;
   email: string;
   fullName: string;
-  role: 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF';
 }
 
 interface AuthContextType {
@@ -182,8 +182,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const hasPermission = useCallback(
     (key: string): boolean => {
-      // ADMIN always has all permissions (safety net)
-      if (user?.role === 'ADMIN') return true;
+      // SUPER_ADMIN and ADMIN always have all permissions (safety net)
+      if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') return true;
       return permissionSet.has(key);
     },
     [permissionSet, user?.role]
