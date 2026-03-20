@@ -164,6 +164,7 @@ export async function getResetPreviewCounts(pool: Pool): Promise<{
     'stock_movements', 'inventory_batches', 'cost_layers',
     'cash_register_sessions', 'cash_movements',
     'pos_held_orders', 'pos_held_order_items',
+    'quotations', 'supplier_payments',
   ];
 
   const masterTables = [
@@ -224,38 +225,35 @@ export async function executeReset(pool: Pool): Promise<void> {
   try {
     await client.query('BEGIN');
 
-    // Order matters due to foreign key constraints.
-    // Use TRUNCATE CASCADE for efficiency and safety.
-    // Child tables first, then parent tables.
+    // ================================================================
+    // NUCLEAR RESET: Single TRUNCATE ... CASCADE for all transactional
+    // tables guarantees no FK constraint failures regardless of order.
+    // ================================================================
 
-    // 1. Delete cash movements (child of sessions)
-    await client.query('TRUNCATE TABLE cash_movements CASCADE');
+    // Core transactional tables (always exist)
+    await client.query(`
+      TRUNCATE TABLE
+        cash_movements,
+        cash_register_sessions,
+        pos_held_order_items,
+        pos_held_orders,
+        invoice_payments,
+        invoices,
+        sale_items,
+        sales,
+        supplier_payments,
+        goods_receipt_items,
+        goods_receipts,
+        purchase_order_items,
+        purchase_orders,
+        stock_movements,
+        inventory_batches,
+        cost_layers,
+        quotations
+      CASCADE
+    `);
 
-    // 2. Delete POS held orders
-    await client.query('TRUNCATE TABLE pos_held_order_items CASCADE');
-    await client.query('TRUNCATE TABLE pos_held_orders CASCADE');
-
-    // 3. Delete sale-related
-    await client.query('TRUNCATE TABLE invoice_payments CASCADE');
-    await client.query('TRUNCATE TABLE invoices CASCADE');
-    await client.query('TRUNCATE TABLE sale_items CASCADE');
-    await client.query('TRUNCATE TABLE sales CASCADE');
-
-    // 4. Delete purchase-related
-    await client.query('TRUNCATE TABLE goods_receipt_items CASCADE');
-    await client.query('TRUNCATE TABLE goods_receipts CASCADE');
-    await client.query('TRUNCATE TABLE purchase_order_items CASCADE');
-    await client.query('TRUNCATE TABLE purchase_orders CASCADE');
-
-    // 5. Delete inventory tracking
-    await client.query('TRUNCATE TABLE stock_movements CASCADE');
-    await client.query('TRUNCATE TABLE inventory_batches CASCADE');
-    await client.query('TRUNCATE TABLE cost_layers CASCADE');
-
-    // 6. Delete cash register sessions
-    await client.query('TRUNCATE TABLE cash_register_sessions CASCADE');
-
-    // 7. Delete optional tables (expenses, refunds)
+    // Optional tables (may not exist in all deployments)
     const optionalTables = ['refund_items', 'refunds', 'expenses'];
     for (const table of optionalTables) {
       try {
@@ -265,7 +263,7 @@ export async function executeReset(pool: Pool): Promise<void> {
       }
     }
 
-    // 8. Reset balances on master data
+    // Reset balances on master data
     await client.query('UPDATE customers SET balance = 0, updated_at = CURRENT_TIMESTAMP');
     await client.query('UPDATE suppliers SET balance = 0, updated_at = CURRENT_TIMESTAMP');
     await client.query(`
@@ -276,8 +274,10 @@ export async function executeReset(pool: Pool): Promise<void> {
         updated_at = CURRENT_TIMESTAMP
     `);
 
-    // 9. Reset sequences used for hold numbers
+    // Reset ALL sequences
     await client.query("SELECT setval('hold_number_seq', 1, false)");
+    await client.query("SELECT setval('expense_number_seq', 1, false)");
+    await client.query("SELECT setval('quotation_number_seq', 1, false)");
 
     await client.query('COMMIT');
     logger.info('System reset completed successfully - all transactional data cleared');
