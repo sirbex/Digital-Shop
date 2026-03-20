@@ -190,23 +190,19 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 // SERVER STARTUP
 // ============================================================================
 
-// Run migrations then start listening
-runMigrations(pool)
-    .then(() => {
-        app.listen(PORT, () => {
-            logger.info('✨ DigitalShop Backend Server');
-            logger.info(`🚀 Server running on port ${PORT}`);
-            logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-            logger.info(`📡 API: http://localhost:${PORT}/api`);
-            logger.info(`❤️  Health: http://localhost:${PORT}/health`);
-        });
-    })
-    .catch((err) => {
-        logger.error('Migration failed, starting server anyway:', err);
-        app.listen(PORT, () => {
-            logger.info(`🚀 Server running on port ${PORT} (migrations had errors)`);
-        });
+// Start listening immediately (Railway needs the PORT bound quickly)
+app.listen(PORT, () => {
+    logger.info('✨ DigitalShop Backend Server');
+    logger.info(`🚀 Server running on port ${PORT}`);
+    logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    logger.info(`📡 API: http://localhost:${PORT}/api`);
+    logger.info(`❤️  Health: http://localhost:${PORT}/health`);
+
+    // Run migrations in the background after server is listening
+    runMigrations(pool).catch((err) => {
+        logger.error('Startup migrations failed:', err);
     });
+});
 
 // ============================================================================
 // PROCESS EVENT HANDLERS
