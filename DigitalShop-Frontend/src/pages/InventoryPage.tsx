@@ -607,7 +607,8 @@ export function InventoryPage() {
     try {
       const response = await goodsReceiptsApi.hydrateFromPO(id);
       if (response.data.success) {
-        alert(`Goods receipt ${response.data.data.grNumber} created! Please review and finalize.`);
+        const grNumber = response.data.data.receiptNumber || response.data.data.grNumber;
+        alert(response.data.message || `Goods receipt ${grNumber} created! Please review and finalize.`);
         setActiveTab('goods-receipts');
         loadGoodsReceipts();
       }

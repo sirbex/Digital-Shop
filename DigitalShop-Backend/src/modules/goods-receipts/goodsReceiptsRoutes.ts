@@ -159,6 +159,38 @@ router.post('/hydrate-from-po', requireManager, async (req: Request, res: Respon
       return;
     }
 
+    // Check for existing goods receipts for this PO to prevent duplicates
+    const existingGRs = await pool.query(`
+      SELECT id, receipt_number AS "receiptNumber", status
+      FROM goods_receipts
+      WHERE purchase_order_id = $1 AND status != 'CANCELLED'
+      ORDER BY created_at DESC
+    `, [purchaseOrderId]);
+
+    if (existingGRs.rows.length > 0) {
+      const existingGR = existingGRs.rows[0];
+      if (existingGR.status === 'DRAFT') {
+        // Return the existing DRAFT GR instead of creating a duplicate
+        res.status(200).json({
+          success: true,
+          data: {
+            grId: existingGR.id,
+            id: existingGR.id,
+            receiptNumber: existingGR.receiptNumber,
+          },
+          message: `Existing draft goods receipt ${existingGR.receiptNumber} found for this PO. Redirecting to it.`,
+        });
+        return;
+      }
+      if (existingGR.status === 'COMPLETED') {
+        res.status(400).json({
+          success: false,
+          error: `A completed goods receipt (${existingGR.receiptNumber}) already exists for this purchase order.`,
+        });
+        return;
+      }
+    }
+
     // Create goods receipt from PO data
     const result = await GRService.createGoodsReceiptV2(pool, {
       purchaseOrderId: po.id,
