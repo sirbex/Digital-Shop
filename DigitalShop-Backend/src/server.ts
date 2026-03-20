@@ -151,11 +151,27 @@ app.use('/api/pos/hold', holdRoutes);
 const frontendDistPath = path.resolve(__dirname, '../../DigitalShop-Frontend/dist');
 
 if (fs.existsSync(frontendDistPath)) {
-    // Serve static assets (JS, CSS, images)
-    app.use(express.static(frontendDistPath, { maxAge: '1y', immutable: true }));
+    // Hashed assets (/assets/*) — immutable, cache forever
+    app.use('/assets', express.static(path.join(frontendDistPath, 'assets'), {
+        maxAge: '1y',
+        immutable: true,
+    }));
 
-    // SPA fallback — any non-API route serves index.html (React Router handles it)
-    app.get('*', (_req: Request, res: Response) => {
+    // Other static files (favicon, manifest, etc.) — short cache
+    app.use(express.static(frontendDistPath, {
+        maxAge: '1h',
+        index: false,  // Don't auto-serve index.html for directory requests
+    }));
+
+    // SPA fallback — only for non-asset, non-API routes
+    app.get('*', (req: Request, res: Response) => {
+        // If it looks like a file request (has extension), return 404 instead of index.html
+        if (req.path.startsWith('/assets/') || /\.\w+$/.test(req.path)) {
+            res.status(404).json({ success: false, error: 'File not found' });
+            return;
+        }
+        // HTML pages — never cache (contains hashed asset references)
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.sendFile(path.join(frontendDistPath, 'index.html'));
     });
 
