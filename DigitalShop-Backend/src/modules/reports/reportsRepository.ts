@@ -255,13 +255,44 @@ export const reportsRepository = {
       ORDER BY SUM(e.amount) DESC
     `;
 
-    const [revenueResult, cogsResult, creditResult, inventoryResult, expensesResult, expenseByCategoryResult] = await Promise.all([
+    // ========================================================================
+    // SUPPLIER / PURCHASE DATA — Accounts Payable & Payments to Suppliers
+    // ========================================================================
+    const supplierPaymentsQuery = `
+      SELECT 
+        COALESCE(SUM(sp.amount), 0) as "totalSupplierPayments",
+        COUNT(*) as "supplierPaymentCount"
+      FROM supplier_payments sp
+      WHERE DATE(sp.payment_date) >= $1
+        AND DATE(sp.payment_date) <= $2
+    `;
+
+    const purchaseOrdersQuery = `
+      SELECT 
+        COALESCE(SUM(po.total_amount), 0) as "totalPurchases",
+        COUNT(*) as "poCount"
+      FROM purchase_orders po
+      WHERE po.status IN ('RECEIVED', 'PARTIAL')
+        AND DATE(po.order_date) >= $1
+        AND DATE(po.order_date) <= $2
+    `;
+
+    const accountsPayableQuery = `
+      SELECT COALESCE(SUM(s.balance), 0) as "accountsPayable"
+      FROM suppliers s
+      WHERE s.balance > 0
+    `;
+
+    const [revenueResult, cogsResult, creditResult, inventoryResult, expensesResult, expenseByCategoryResult, supplierPaymentsResult, purchaseOrdersResult, apResult] = await Promise.all([
       pool.query(revenueQuery, [startDate, endDate]),
       pool.query(cogsQuery, [startDate, endDate]),
       pool.query(creditQuery, [startDate, endDate]),
       pool.query(inventoryQuery),
       pool.query(expensesQuery, [startDate, endDate]),
       pool.query(expenseByCategoryQuery, [startDate, endDate]),
+      pool.query(supplierPaymentsQuery, [startDate, endDate]),
+      pool.query(purchaseOrdersQuery, [startDate, endDate]),
+      pool.query(accountsPayableQuery),
     ]);
 
     const revenue = revenueResult.rows[0];
@@ -270,6 +301,9 @@ export const reportsRepository = {
     const inventory = inventoryResult.rows[0];
     const expenses = expensesResult.rows[0];
     const expensesByCategory = expenseByCategoryResult.rows;
+    const supplierPayments = supplierPaymentsResult.rows[0];
+    const purchaseOrders = purchaseOrdersResult.rows[0];
+    const accountsPayable = apResult.rows[0];
 
     const grossRevenue = parseFloat(revenue.grossRevenue) || 0;
     const discounts = parseFloat(revenue.discounts) || 0;
@@ -317,6 +351,16 @@ export const reportsRepository = {
       netProfitMargin,
       accountsReceivable: parseFloat(credit.accountsReceivable) || 0,
       inventoryValue: parseFloat(inventory.inventoryValue) || 0,
+      // Supplier / Purchase data
+      supplierPayments: {
+        totalPaid: parseFloat(supplierPayments.totalSupplierPayments) || 0,
+        paymentCount: parseInt(supplierPayments.supplierPaymentCount) || 0,
+      },
+      purchases: {
+        totalPurchases: parseFloat(purchaseOrders.totalPurchases) || 0,
+        poCount: parseInt(purchaseOrders.poCount) || 0,
+      },
+      accountsPayable: parseFloat(accountsPayable.accountsPayable) || 0,
     };
   },
 
@@ -1924,6 +1968,49 @@ export const reportsRepository = {
       ORDER BY SUM(e.amount) DESC
     `;
 
+    // Supplier payments in period (purchases cost)
+    const supplierPaymentsQuery = `
+      SELECT 
+        COALESCE(SUM(sp.amount), 0) as "totalSupplierPayments",
+        COUNT(*) as "supplierPaymentCount"
+      FROM supplier_payments sp
+      WHERE DATE(sp.payment_date) >= $1
+        AND DATE(sp.payment_date) <= $2
+    `;
+
+    // Purchase orders in period
+    const purchaseOrdersQuery = `
+      SELECT 
+        COALESCE(SUM(po.total_amount), 0) as "totalPurchases",
+        COUNT(*) as "poCount"
+      FROM purchase_orders po
+      WHERE po.status IN ('RECEIVED', 'PARTIAL')
+        AND DATE(po.order_date) >= $1
+        AND DATE(po.order_date) <= $2
+    `;
+
+    // Accounts payable (what we still owe)
+    const accountsPayableQuery = `
+      SELECT COALESCE(SUM(s.balance), 0) as "accountsPayable"
+      FROM suppliers s
+      WHERE s.balance > 0
+    `;
+
+    // Supplier payments by supplier (top payees)
+    const supplierBreakdownQuery = `
+      SELECT 
+        s.name as "supplierName",
+        COALESCE(SUM(sp.amount), 0) as "totalPaid",
+        COUNT(*) as "paymentCount",
+        s.balance as "currentBalance"
+      FROM supplier_payments sp
+      JOIN suppliers s ON sp.supplier_id = s.id
+      WHERE DATE(sp.payment_date) >= $1
+        AND DATE(sp.payment_date) <= $2
+      GROUP BY s.id, s.name, s.balance
+      ORDER BY SUM(sp.amount) DESC
+    `;
+
     // Daily breakdown
     const dailyQuery = `
       WITH daily_sales AS (
@@ -1956,12 +2043,23 @@ export const reportsRepository = {
           AND e.status = 'APPROVED'
         GROUP BY DATE(e.expense_date)
       ),
+      daily_supplier_payments AS (
+        SELECT 
+          DATE(sp.payment_date) as date,
+          SUM(sp.amount) as supplier_payments
+        FROM supplier_payments sp
+        WHERE DATE(sp.payment_date) >= $1
+          AND DATE(sp.payment_date) <= $2
+        GROUP BY DATE(sp.payment_date)
+      ),
       all_dates AS (
         SELECT DISTINCT date FROM daily_sales
         UNION
         SELECT DISTINCT date FROM daily_collections
         UNION
         SELECT DISTINCT date FROM daily_expenses
+        UNION
+        SELECT DISTINCT date FROM daily_supplier_payments
       )
       SELECT 
         d.date,
@@ -1969,20 +2067,26 @@ export const reportsRepository = {
         COALESCE(ds.gross_profit, 0) as "grossProfit",
         COALESCE(dc.collections_income, 0) as "collectionsIncome",
         COALESCE(de.total_expenses, 0) as "totalExpenses",
-        COALESCE(ds.gross_profit, 0) - COALESCE(de.total_expenses, 0) as "netProfit"
+        COALESCE(dsp.supplier_payments, 0) as "supplierPayments",
+        COALESCE(ds.gross_profit, 0) - COALESCE(de.total_expenses, 0) - COALESCE(dsp.supplier_payments, 0) as "netProfit"
       FROM all_dates d
       LEFT JOIN daily_sales ds ON d.date = ds.date
       LEFT JOIN daily_collections dc ON d.date = dc.date
       LEFT JOIN daily_expenses de ON d.date = de.date
+      LEFT JOIN daily_supplier_payments dsp ON d.date = dsp.date
       ORDER BY d.date DESC
     `;
 
-    const [salesResult, paymentsResult, expensesResult, expensesByCategoryResult, dailyResult] = await Promise.all([
+    const [salesResult, paymentsResult, expensesResult, expensesByCategoryResult, dailyResult, supplierPaymentsResult, purchaseOrdersResult, apResult, supplierBreakdownResult] = await Promise.all([
       pool.query(salesIncomeQuery, [filters.startDate, filters.endDate]),
       pool.query(paymentsReceivedQuery, [filters.startDate, filters.endDate]),
       pool.query(expensesQuery, [filters.startDate, filters.endDate]),
       pool.query(expensesByCategoryQuery, [filters.startDate, filters.endDate]),
       pool.query(dailyQuery, [filters.startDate, filters.endDate]),
+      pool.query(supplierPaymentsQuery, [filters.startDate, filters.endDate]),
+      pool.query(purchaseOrdersQuery, [filters.startDate, filters.endDate]),
+      pool.query(accountsPayableQuery),
+      pool.query(supplierBreakdownQuery, [filters.startDate, filters.endDate]),
     ]);
 
     const salesData = salesResult.rows[0];
@@ -1990,15 +2094,23 @@ export const reportsRepository = {
     const expensesData = expensesResult.rows[0];
     const expensesByCategory = expensesByCategoryResult.rows;
     const dailyData = dailyResult.rows;
+    const supplierPaymentsData = supplierPaymentsResult.rows[0];
+    const purchaseOrdersData = purchaseOrdersResult.rows[0];
+    const accountsPayableData = apResult.rows[0];
+    const supplierBreakdown = supplierBreakdownResult.rows;
 
     const salesRevenue = parseFloat(salesData.salesRevenue) || 0;
     const grossProfit = parseFloat(salesData.grossProfit) || 0;
     const paymentsReceived = parseFloat(paymentsData.paymentsReceived) || 0;
     const totalExpenses = parseFloat(expensesData.totalExpenses) || 0;
 
-    // Net Income = Gross Profit from Sales - Operating Expenses
-    // (Gross Profit already accounts for COGS)
+    const totalSupplierPayments = parseFloat(supplierPaymentsData.totalSupplierPayments) || 0;
+    const totalPurchases = parseFloat(purchaseOrdersData.totalPurchases) || 0;
+
+    // Net Income = Gross Profit from Sales - Operating Expenses - Supplier Payments
     const netIncome = grossProfit - totalExpenses;
+    // Total outflow includes both operating expenses and supplier payments
+    const totalOutflow = totalExpenses + totalSupplierPayments;
 
     // Calculate percentage breakdown for each expense category
     const categoryBreakdown = expensesByCategory.map((cat: any) => ({
@@ -2023,6 +2135,21 @@ export const reportsRepository = {
         expenseCount: parseInt(expensesData.expenseCount) || 0,
         byCategory: categoryBreakdown,
       },
+      // Supplier / Purchase section
+      supplierPayments: {
+        totalPaid: totalSupplierPayments,
+        paymentCount: parseInt(supplierPaymentsData.supplierPaymentCount) || 0,
+        totalPurchases,
+        poCount: parseInt(purchaseOrdersData.poCount) || 0,
+        accountsPayable: parseFloat(accountsPayableData.accountsPayable) || 0,
+        bySupplier: supplierBreakdown.map((row: any) => ({
+          supplierName: row.supplierName,
+          totalPaid: parseFloat(row.totalPaid) || 0,
+          paymentCount: parseInt(row.paymentCount) || 0,
+          currentBalance: parseFloat(row.currentBalance) || 0,
+        })),
+      },
+      totalOutflow,
       netIncome,
       netProfitMargin: salesRevenue > 0 ? (netIncome / salesRevenue) * 100 : 0,
       dailyBreakdown: dailyData.map((row: any) => ({
@@ -2031,7 +2158,172 @@ export const reportsRepository = {
         grossProfit: parseFloat(row.grossProfit) || 0,
         collectionsIncome: parseFloat(row.collectionsIncome) || 0,
         totalExpenses: parseFloat(row.totalExpenses) || 0,
+        supplierPayments: parseFloat(row.supplierPayments) || 0,
         netProfit: parseFloat(row.netProfit) || 0,
+      })),
+    };
+  },
+
+  // ==========================================================================
+  // SUPPLIER / PURCHASE REPORTS
+  // ==========================================================================
+
+  /**
+   * Supplier Payments Report — per-supplier breakdown of POs, payments, balances
+   */
+  async getSupplierPaymentsReport(filters: { startDate: string; endDate: string }) {
+    // Per-supplier summary
+    const supplierSummaryQuery = `
+      SELECT 
+        s.id,
+        s.name,
+        s.phone,
+        s.email,
+        s.balance as "currentBalance",
+        s.is_active as "isActive",
+        -- Total PO value (received/partial only)
+        COALESCE((
+          SELECT SUM(po.total_amount) 
+          FROM purchase_orders po 
+          WHERE po.supplier_id = s.id 
+            AND po.status IN ('RECEIVED', 'PARTIAL')
+        ), 0) as "totalPurchaseOrders",
+        -- POs in date range
+        COALESCE((
+          SELECT SUM(po.total_amount) 
+          FROM purchase_orders po 
+          WHERE po.supplier_id = s.id 
+            AND po.status IN ('RECEIVED', 'PARTIAL')
+            AND DATE(po.order_date) >= $1
+            AND DATE(po.order_date) <= $2
+        ), 0) as "periodPurchaseOrders",
+        -- Total payments ever
+        COALESCE((
+          SELECT SUM(sp.amount) 
+          FROM supplier_payments sp 
+          WHERE sp.supplier_id = s.id
+        ), 0) as "totalPayments",
+        -- Payments in date range
+        COALESCE((
+          SELECT SUM(sp.amount) 
+          FROM supplier_payments sp 
+          WHERE sp.supplier_id = s.id
+            AND DATE(sp.payment_date) >= $1
+            AND DATE(sp.payment_date) <= $2
+        ), 0) as "periodPayments",
+        -- Payment count in period
+        COALESCE((
+          SELECT COUNT(*) 
+          FROM supplier_payments sp 
+          WHERE sp.supplier_id = s.id
+            AND DATE(sp.payment_date) >= $1
+            AND DATE(sp.payment_date) <= $2
+        ), 0) as "periodPaymentCount",
+        -- Last payment date
+        (
+          SELECT MAX(sp.payment_date) 
+          FROM supplier_payments sp 
+          WHERE sp.supplier_id = s.id
+        ) as "lastPaymentDate"
+      FROM suppliers s
+      ORDER BY s.balance DESC, s.name ASC
+    `;
+
+    // Totals summary
+    const totalsQuery = `
+      SELECT 
+        COALESCE(SUM(po.total_amount), 0) as "totalPurchaseValue",
+        COUNT(DISTINCT po.id) as "totalPOCount"
+      FROM purchase_orders po
+      WHERE po.status IN ('RECEIVED', 'PARTIAL')
+        AND DATE(po.order_date) >= $1
+        AND DATE(po.order_date) <= $2
+    `;
+
+    const paymentTotalsQuery = `
+      SELECT 
+        COALESCE(SUM(sp.amount), 0) as "totalPaid",
+        COUNT(*) as "paymentCount"
+      FROM supplier_payments sp
+      WHERE DATE(sp.payment_date) >= $1
+        AND DATE(sp.payment_date) <= $2
+    `;
+
+    // All-time accounts payable
+    const accountsPayableQuery = `
+      SELECT COALESCE(SUM(s.balance), 0) as "totalAccountsPayable"
+      FROM suppliers s
+      WHERE s.balance > 0
+    `;
+
+    // Recent payments detail
+    const recentPaymentsQuery = `
+      SELECT 
+        sp.id,
+        sp.receipt_number as "receiptNumber",
+        s.name as "supplierName",
+        sp.payment_date as "paymentDate",
+        sp.payment_method as "paymentMethod",
+        sp.amount,
+        sp.reference_number as "referenceNumber",
+        sp.notes,
+        u.full_name as "processedBy",
+        po.order_number as "poNumber"
+      FROM supplier_payments sp
+      JOIN suppliers s ON sp.supplier_id = s.id
+      LEFT JOIN users u ON sp.processed_by_id = u.id
+      LEFT JOIN purchase_orders po ON sp.purchase_order_id = po.id
+      WHERE DATE(sp.payment_date) >= $1
+        AND DATE(sp.payment_date) <= $2
+      ORDER BY sp.payment_date DESC
+    `;
+
+    const [suppliersResult, totalsResult, paymentTotalsResult, apResult, recentResult] = await Promise.all([
+      pool.query(supplierSummaryQuery, [filters.startDate, filters.endDate]),
+      pool.query(totalsQuery, [filters.startDate, filters.endDate]),
+      pool.query(paymentTotalsQuery, [filters.startDate, filters.endDate]),
+      pool.query(accountsPayableQuery),
+      pool.query(recentPaymentsQuery, [filters.startDate, filters.endDate]),
+    ]);
+
+    const totals = totalsResult.rows[0];
+    const paymentTotals = paymentTotalsResult.rows[0];
+    const ap = apResult.rows[0];
+
+    return {
+      period: { startDate: filters.startDate, endDate: filters.endDate },
+      summary: {
+        totalPurchaseValue: parseFloat(totals.totalPurchaseValue) || 0,
+        totalPOCount: parseInt(totals.totalPOCount) || 0,
+        totalPaid: parseFloat(paymentTotals.totalPaid) || 0,
+        paymentCount: parseInt(paymentTotals.paymentCount) || 0,
+        totalAccountsPayable: parseFloat(ap.totalAccountsPayable) || 0,
+      },
+      suppliers: suppliersResult.rows.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        phone: row.phone,
+        email: row.email,
+        isActive: row.isActive,
+        currentBalance: parseFloat(row.currentBalance) || 0,
+        totalPurchaseOrders: parseFloat(row.totalPurchaseOrders) || 0,
+        periodPurchaseOrders: parseFloat(row.periodPurchaseOrders) || 0,
+        totalPayments: parseFloat(row.totalPayments) || 0,
+        periodPayments: parseFloat(row.periodPayments) || 0,
+        periodPaymentCount: parseInt(row.periodPaymentCount) || 0,
+        lastPaymentDate: row.lastPaymentDate,
+      })),
+      recentPayments: recentResult.rows.map((row: any) => ({
+        id: row.id,
+        receiptNumber: row.receiptNumber,
+        supplierName: row.supplierName,
+        paymentDate: row.paymentDate,
+        paymentMethod: row.paymentMethod,
+        amount: parseFloat(row.amount) || 0,
+        referenceNumber: row.referenceNumber,
+        notes: row.notes,
+        processedBy: row.processedBy,
+        poNumber: row.poNumber,
       })),
     };
   },

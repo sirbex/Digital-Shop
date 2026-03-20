@@ -86,6 +86,11 @@ router.get('/daily-expenses', reportsController.getDailyExpenseReport);
 router.get('/income-vs-expense', reportsController.getIncomeVsExpenseReport);
 
 // ============================================================================
+// SUPPLIER / PURCHASE REPORTS
+// ============================================================================
+router.get('/supplier-payments', reportsController.getSupplierPaymentsReport);
+
+// ============================================================================
 // DASHBOARD SUMMARY
 // ============================================================================
 router.get('/dashboard', reportsController.getDashboardSummary);

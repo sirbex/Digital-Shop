@@ -5,7 +5,7 @@ import { reportsApi } from '../lib/api';
 import { usePermissions } from '../hooks/usePermissions';
 import { useSettings } from '../contexts/SettingsContext';
 
-type ReportType = 'dashboard' | 'dailySales' | 'salesDetails' | 'salesSummary' | 'salesByHour' | 'salesByCashier' | 'salesTrends' | 'paymentMethods' | 'inventory' | 'stockValuation' | 'outOfStock' | 'inventoryMovements' | 'slowMoving' | 'fastMoving' | 'expiringStock' | 'stockReorder' | 'inventoryTurnover' | 'profitLoss' | 'customerAging' | 'customerAccounts' | 'bestSelling' | 'invoices' | 'voided' | 'refunds' | 'discounts' | 'discountsByCashier' | 'paymentsReceived' | 'dailyCollections' | 'expenseSummary' | 'expenseByCategory' | 'incomeVsExpense';
+type ReportType = 'dashboard' | 'dailySales' | 'salesDetails' | 'salesSummary' | 'salesByHour' | 'salesByCashier' | 'salesTrends' | 'paymentMethods' | 'inventory' | 'stockValuation' | 'outOfStock' | 'inventoryMovements' | 'slowMoving' | 'fastMoving' | 'expiringStock' | 'stockReorder' | 'inventoryTurnover' | 'profitLoss' | 'customerAging' | 'customerAccounts' | 'bestSelling' | 'invoices' | 'voided' | 'refunds' | 'discounts' | 'discountsByCashier' | 'paymentsReceived' | 'dailyCollections' | 'expenseSummary' | 'expenseByCategory' | 'incomeVsExpense' | 'supplierPayments';
 
 export function ReportsPage() {
   const perms = usePermissions();
@@ -64,6 +64,7 @@ export function ReportsPage() {
     { id: 'expenseSummary', name: 'Expense Summary', icon: '📤', description: 'Total expenses by category', category: 'Financial', requiresPermission: 'reports.expenses' },
     { id: 'expenseByCategory', name: 'Expenses by Category', icon: '📊', description: 'Expense breakdown by category', category: 'Financial', requiresPermission: 'reports.expenses' },
     { id: 'incomeVsExpense', name: 'Income vs Expense', icon: '⚖️', description: 'Compare income and expenses', category: 'Financial', requiresPermission: 'reports.expenses' },
+    { id: 'supplierPayments', name: 'Supplier Payments', icon: '🏭', description: 'Payments to suppliers & accounts payable', category: 'Financial', requiresPermission: 'reports.expenses' },
     
     // Inventory Reports
     { id: 'inventory', name: 'Inventory Report', icon: '📦', description: 'Stock levels and low stock alerts', category: 'Inventory' },
@@ -238,6 +239,9 @@ export function ReportsPage() {
           break;
         case 'incomeVsExpense':
           response = await reportsApi.getIncomeVsExpense({ startDate, endDate });
+          break;
+        case 'supplierPayments':
+          response = await reportsApi.getSupplierPayments({ startDate, endDate });
           break;
       }
 
@@ -864,6 +868,8 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
         return renderExpenseByCategory();
       case 'incomeVsExpense':
         return renderIncomeVsExpense();
+      case 'supplierPayments':
+        return renderSupplierPayments();
       default:
         return null;
     }
@@ -1292,7 +1298,7 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="bg-gray-50 p-4 rounded-lg">
             <p className="text-sm text-gray-600">Tax Collected</p>
             <p className="text-xl font-bold">{formatCurrency(taxCollected)}</p>
@@ -1303,13 +1309,48 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
           </div>
           <div className="bg-gray-50 p-4 rounded-lg">
             <p className="text-sm text-gray-600">Accounts Receivable</p>
-            <p className="text-xl font-bold">{formatCurrency(reportData.accountsReceivable || 0)}</p>
+            <p className="text-xl font-bold text-blue-600">{formatCurrency(reportData.accountsReceivable || 0)}</p>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <p className="text-sm text-gray-600">Accounts Payable</p>
+            <p className="text-xl font-bold text-orange-600">{formatCurrency(reportData.accountsPayable || 0)}</p>
           </div>
           <div className="bg-gray-50 p-4 rounded-lg">
             <p className="text-sm text-gray-600">Inventory Value</p>
             <p className="text-xl font-bold">{formatCurrency(reportData.inventoryValue || 0)}</p>
           </div>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <p className="text-sm text-gray-600">Supplier Payments</p>
+            <p className="text-xl font-bold text-purple-600">{formatCurrency(reportData.supplierPayments?.totalPaid || 0)}</p>
+          </div>
         </div>
+
+        {/* Purchase & Supplier Section */}
+        {(reportData.purchases?.totalPurchases > 0 || reportData.supplierPayments?.totalPaid > 0 || reportData.accountsPayable > 0) && (
+          <div className="bg-white border rounded-lg overflow-hidden">
+            <div className="bg-purple-600 text-white px-4 py-2 font-semibold">Purchases & Supplier Payments</div>
+            <div className="p-4 space-y-2">
+              <div className="flex justify-between">
+                <span>Purchase Orders (Period)</span>
+                <span className="font-medium">{formatCurrency(reportData.purchases?.totalPurchases || 0)}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span className="pl-4">Orders received: {reportData.purchases?.poCount || 0}</span>
+              </div>
+              <div className="flex justify-between border-t pt-2">
+                <span>Payments to Suppliers (Period)</span>
+                <span className="font-medium text-purple-600">{formatCurrency(reportData.supplierPayments?.totalPaid || 0)}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span className="pl-4">Payments made: {reportData.supplierPayments?.paymentCount || 0}</span>
+              </div>
+              <div className="flex justify-between border-t pt-2 font-semibold text-orange-600">
+                <span>Outstanding Payable (All-Time)</span>
+                <span>{formatCurrency(reportData.accountsPayable || 0)}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Profit Breakdown Visual */}
         <div className="bg-white border rounded-lg p-4">
@@ -2142,19 +2183,23 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
       return <div className="text-center py-12 text-gray-500">No data available for this period</div>;
     }
 
-    const { income, expenses, netIncome, netProfitMargin, dailyBreakdown } = reportData;
+    const { income, expenses, supplierPayments: spData, netIncome, netProfitMargin, dailyBreakdown } = reportData;
     const totalIncome = parseFloat(income?.totalIncome || income?.salesRevenue || 0);
     const salesRevenue = parseFloat(income?.salesRevenue || 0);
     const grossProfit = parseFloat(income?.grossProfit || 0);
     const paymentsReceived = parseFloat(income?.paymentsReceived || 0);
     const totalExpenses = parseFloat(expenses?.totalExpenses || 0);
+    const supplierPaid = parseFloat(spData?.totalPaid || 0);
+    const totalPurchases = parseFloat(spData?.totalPurchases || 0);
+    const accountsPayable = parseFloat(spData?.accountsPayable || 0);
     const net = parseFloat(netIncome || 0);
     const margin = parseFloat(netProfitMargin || 0);
+    const totalOutflow = totalExpenses + supplierPaid;
 
     return (
       <div className="space-y-6">
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <p className="text-sm text-gray-600">Sales Revenue</p>
             <p className="text-2xl font-bold text-green-600">{formatCurrency(salesRevenue)}</p>
@@ -2169,6 +2214,11 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
             <p className="text-sm text-gray-600">Operating Expenses</p>
             <p className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
             <p className="text-xs text-gray-500 mt-1">{expenses?.expenseCount || 0} expenses</p>
+          </div>
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <p className="text-sm text-gray-600">Supplier Payments</p>
+            <p className="text-2xl font-bold text-purple-600">{formatCurrency(supplierPaid)}</p>
+            <p className="text-xs text-gray-500 mt-1">{spData?.paymentCount || 0} payments</p>
           </div>
           <div className={`border-2 rounded-lg p-4 ${net >= 0 ? 'bg-emerald-50 border-emerald-300' : 'bg-yellow-50 border-yellow-300'}`}>
             <p className="text-sm text-gray-600">Net Profit</p>
@@ -2201,10 +2251,22 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
               <span>Less: Operating Expenses</span>
               <span>-{formatCurrency(totalExpenses)}</span>
             </div>
+            {supplierPaid > 0 && (
+              <div className="flex justify-between py-2 border-b text-purple-600">
+                <span>Less: Supplier Payments</span>
+                <span>-{formatCurrency(supplierPaid)}</span>
+              </div>
+            )}
             <div className={`flex justify-between py-2 font-bold text-lg ${net >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
               <span>= Net Profit</span>
               <span>{net >= 0 ? '' : '-'}{formatCurrency(Math.abs(net))}</span>
             </div>
+            {supplierPaid > 0 && (
+              <div className="flex justify-between py-2 text-gray-500 text-xs border-t mt-2 pt-2">
+                <span>Total Cash Outflow (Expenses + Supplier Payments)</span>
+                <span className="font-medium">{formatCurrency(totalOutflow)}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -2302,12 +2364,65 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
           </div>
         )}
 
+        {/* Supplier Payments Breakdown */}
+        {Array.isArray(spData?.bySupplier) && spData.bySupplier.length > 0 && (
+          <div className="bg-white border rounded-lg p-4">
+            <h4 className="text-sm font-medium mb-3">Supplier Payments Breakdown</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs sm:text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Supplier</th>
+                    <th className="px-3 py-2 text-right"># Payments</th>
+                    <th className="px-3 py-2 text-right">Amount Paid</th>
+                    <th className="px-3 py-2 text-right">Balance Owed</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {spData.bySupplier.map((s: any) => (
+                    <tr key={s.supplierName} className="hover:bg-gray-50">
+                      <td className="px-3 py-2 font-medium">{s.supplierName}</td>
+                      <td className="px-3 py-2 text-right">{s.paymentCount}</td>
+                      <td className="px-3 py-2 text-right text-purple-600 font-medium">{formatCurrency(s.totalPaid)}</td>
+                      <td className={`px-3 py-2 text-right font-medium ${s.currentBalance > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                        {formatCurrency(s.currentBalance)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-gray-100 font-semibold">
+                  <tr>
+                    <td className="px-3 py-2">Total</td>
+                    <td className="px-3 py-2 text-right">{spData.paymentCount}</td>
+                    <td className="px-3 py-2 text-right text-purple-600">{formatCurrency(supplierPaid)}</td>
+                    <td className="px-3 py-2 text-right text-orange-600">{formatCurrency(accountsPayable)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Accounts Payable Summary */}
+        {accountsPayable > 0 && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium mb-2">Accounts Payable (Outstanding)</h4>
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-gray-600 text-sm">Total owed to all suppliers</p>
+                <p className="text-xs text-gray-500">Based on received POs minus payments made</p>
+              </div>
+              <p className="text-xl font-bold text-orange-600">{formatCurrency(accountsPayable)}</p>
+            </div>
+          </div>
+        )}
+
         {/* Daily Breakdown */}
         {Array.isArray(dailyBreakdown) && dailyBreakdown.length > 0 && (
           <div className="bg-white border rounded-lg p-4">
             <h4 className="text-sm font-medium mb-3">Daily Breakdown</h4>
             <div className="overflow-x-auto -mx-3 sm:mx-0">
-              <table className="w-full text-xs sm:text-sm min-w-[600px]">
+              <table className="w-full text-xs sm:text-sm min-w-[700px]">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-3 py-2 text-left">Date</th>
@@ -2315,6 +2430,7 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
                     <th className="px-3 py-2 text-right">Gross Profit</th>
                     <th className="px-3 py-2 text-right">Collections</th>
                     <th className="px-3 py-2 text-right">Expenses</th>
+                    <th className="px-3 py-2 text-right">Supplier Pay</th>
                     <th className="px-3 py-2 text-right">Net Profit</th>
                   </tr>
                 </thead>
@@ -2326,6 +2442,9 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
                       <td className="px-3 py-2 text-right text-blue-600">{formatCurrency(day.grossProfit)}</td>
                       <td className="px-3 py-2 text-right text-purple-600">{formatCurrency(day.collectionsIncome)}</td>
                       <td className="px-3 py-2 text-right text-red-600">({formatCurrency(day.totalExpenses)})</td>
+                      <td className="px-3 py-2 text-right text-purple-600">
+                        {day.supplierPayments > 0 ? `(${formatCurrency(day.supplierPayments)})` : '—'}
+                      </td>
                       <td className={`px-3 py-2 text-right font-semibold ${day.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {day.netProfit >= 0 ? '' : '-'}{formatCurrency(Math.abs(day.netProfit))}
                       </td>
@@ -2334,6 +2453,186 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ========== SUPPLIER PAYMENTS REPORT ==========
+  const renderSupplierPayments = () => {
+    if (!reportData) {
+      return <div className="text-center py-12 text-gray-500">No data available for this period</div>;
+    }
+
+    const { summary, suppliers, recentPayments } = reportData;
+
+    return (
+      <div className="space-y-6">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-gray-600">Purchase Orders</p>
+            <p className="text-2xl font-bold text-blue-600">{formatCurrency(summary?.totalPurchaseValue || 0)}</p>
+            <p className="text-xs text-gray-500 mt-1">{summary?.totalPOCount || 0} orders</p>
+          </div>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <p className="text-sm text-gray-600">Total Paid</p>
+            <p className="text-2xl font-bold text-green-600">{formatCurrency(summary?.totalPaid || 0)}</p>
+            <p className="text-xs text-gray-500 mt-1">{summary?.paymentCount || 0} payments</p>
+          </div>
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <p className="text-sm text-gray-600">Accounts Payable</p>
+            <p className="text-2xl font-bold text-orange-600">{formatCurrency(summary?.totalAccountsPayable || 0)}</p>
+            <p className="text-xs text-gray-500 mt-1">Outstanding balance</p>
+          </div>
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <p className="text-sm text-gray-600">Payment Rate</p>
+            <p className="text-2xl font-bold text-purple-600">
+              {summary?.totalPurchaseValue > 0 
+                ? `${((summary.totalPaid / summary.totalPurchaseValue) * 100).toFixed(0)}%`
+                : '—'}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">Paid vs purchased</p>
+          </div>
+          <div className={`border-2 rounded-lg p-4 ${
+            (summary?.totalPurchaseValue || 0) - (summary?.totalPaid || 0) > 0 
+              ? 'bg-red-50 border-red-300' 
+              : 'bg-green-50 border-green-300'
+          }`}>
+            <p className="text-sm text-gray-600">Period Balance</p>
+            <p className={`text-2xl font-bold ${
+              (summary?.totalPurchaseValue || 0) - (summary?.totalPaid || 0) > 0 
+                ? 'text-red-600' : 'text-green-600'
+            }`}>
+              {formatCurrency(Math.abs((summary?.totalPurchaseValue || 0) - (summary?.totalPaid || 0)))}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              {(summary?.totalPurchaseValue || 0) - (summary?.totalPaid || 0) > 0 ? 'Underpaid' : 'Fully covered'}
+            </p>
+          </div>
+        </div>
+
+        {/* Per-Supplier Breakdown */}
+        {Array.isArray(suppliers) && suppliers.length > 0 && (
+          <div className="bg-white border rounded-lg p-4">
+            <h4 className="text-sm font-medium mb-3">Supplier-by-Supplier Breakdown</h4>
+            <div className="overflow-x-auto -mx-3 sm:mx-0">
+              <table className="w-full text-xs sm:text-sm min-w-[700px]">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Supplier</th>
+                    <th className="px-3 py-2 text-right">Total POs</th>
+                    <th className="px-3 py-2 text-right">Period POs</th>
+                    <th className="px-3 py-2 text-right">Total Paid</th>
+                    <th className="px-3 py-2 text-right">Period Paid</th>
+                    <th className="px-3 py-2 text-right">Balance Owed</th>
+                    <th className="px-3 py-2 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {suppliers.filter((s: any) => s.totalPurchaseOrders > 0 || s.currentBalance > 0 || s.periodPayments > 0).map((s: any) => (
+                    <tr key={s.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{s.name}</div>
+                        {s.phone && <div className="text-xs text-gray-500">{s.phone}</div>}
+                      </td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(s.totalPurchaseOrders)}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(s.periodPurchaseOrders)}</td>
+                      <td className="px-3 py-2 text-right text-green-600 font-medium">{formatCurrency(s.totalPayments)}</td>
+                      <td className="px-3 py-2 text-right text-green-600">{formatCurrency(s.periodPayments)}</td>
+                      <td className={`px-3 py-2 text-right font-bold ${s.currentBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {formatCurrency(s.currentBalance)}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+                          s.currentBalance <= 0 
+                            ? 'bg-green-100 text-green-800' 
+                            : s.currentBalance < s.totalPurchaseOrders * 0.5 
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-red-100 text-red-800'
+                        }`}>
+                          {s.currentBalance <= 0 ? 'Paid' : s.currentBalance < s.totalPurchaseOrders * 0.5 ? 'Partial' : 'Owing'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-gray-100 font-semibold">
+                  <tr>
+                    <td className="px-3 py-2">Total</td>
+                    <td className="px-3 py-2 text-right">
+                      {formatCurrency(suppliers.reduce((s: number, r: any) => s + (r.totalPurchaseOrders || 0), 0))}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {formatCurrency(suppliers.reduce((s: number, r: any) => s + (r.periodPurchaseOrders || 0), 0))}
+                    </td>
+                    <td className="px-3 py-2 text-right text-green-600">
+                      {formatCurrency(suppliers.reduce((s: number, r: any) => s + (r.totalPayments || 0), 0))}
+                    </td>
+                    <td className="px-3 py-2 text-right text-green-600">
+                      {formatCurrency(suppliers.reduce((s: number, r: any) => s + (r.periodPayments || 0), 0))}
+                    </td>
+                    <td className="px-3 py-2 text-right text-orange-600">
+                      {formatCurrency(summary?.totalAccountsPayable || 0)}
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Recent Payments */}
+        {Array.isArray(recentPayments) && recentPayments.length > 0 && (
+          <div className="bg-white border rounded-lg p-4">
+            <h4 className="text-sm font-medium mb-3">Payment Transactions</h4>
+            <div className="overflow-x-auto -mx-3 sm:mx-0">
+              <table className="w-full text-xs sm:text-sm min-w-[600px]">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Receipt #</th>
+                    <th className="px-3 py-2 text-left">Supplier</th>
+                    <th className="px-3 py-2 text-left">Date</th>
+                    <th className="px-3 py-2 text-left">Method</th>
+                    <th className="px-3 py-2 text-right">Amount</th>
+                    <th className="px-3 py-2 text-left">Reference</th>
+                    <th className="px-3 py-2 text-left">Processed By</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {recentPayments.map((p: any) => (
+                    <tr key={p.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-2 font-mono text-xs">{p.receiptNumber}</td>
+                      <td className="px-3 py-2 font-medium">{p.supplierName}</td>
+                      <td className="px-3 py-2">{new Date(p.paymentDate).toLocaleDateString()}</td>
+                      <td className="px-3 py-2">
+                        <span className="px-2 py-0.5 text-xs bg-gray-100 rounded-full">{p.paymentMethod}</span>
+                      </td>
+                      <td className="px-3 py-2 text-right font-medium text-green-600">{formatCurrency(p.amount)}</td>
+                      <td className="px-3 py-2 text-gray-500">{p.referenceNumber || '—'}</td>
+                      <td className="px-3 py-2 text-gray-500">{p.processedBy || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-gray-100 font-semibold">
+                  <tr>
+                    <td colSpan={4} className="px-3 py-2">Total ({recentPayments.length} payments)</td>
+                    <td className="px-3 py-2 text-right text-green-600">
+                      {formatCurrency(recentPayments.reduce((s: number, p: any) => s + (p.amount || 0), 0))}
+                    </td>
+                    <td colSpan={2}></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {(!recentPayments || recentPayments.length === 0) && (
+          <div className="bg-gray-50 border rounded-lg p-6 text-center text-gray-500">
+            No supplier payments recorded in this period
           </div>
         )}
       </div>
@@ -2747,7 +3046,7 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
   };
 
   // Check if report needs date range filters
-  const needsDateRange = ['salesDetails', 'salesSummary', 'salesByHour', 'salesByCashier', 'salesTrends', 'paymentMethods', 'profitLoss', 'bestSelling', 'invoices', 'voided', 'refunds', 'inventoryMovements', 'fastMoving', 'inventoryTurnover', 'discounts', 'discountsByCashier', 'paymentsReceived', 'dailyCollections', 'expenseSummary', 'expenseByCategory', 'incomeVsExpense'].includes(selectedReport);
+  const needsDateRange = ['salesDetails', 'salesSummary', 'salesByHour', 'salesByCashier', 'salesTrends', 'paymentMethods', 'profitLoss', 'bestSelling', 'invoices', 'voided', 'refunds', 'inventoryMovements', 'fastMoving', 'inventoryTurnover', 'discounts', 'discountsByCashier', 'paymentsReceived', 'dailyCollections', 'expenseSummary', 'expenseByCategory', 'incomeVsExpense', 'supplierPayments'].includes(selectedReport);
   const needsSingleDate = selectedReport === 'dailySales';
   const needsDaysFilter = ['slowMoving', 'expiringStock'].includes(selectedReport);
 

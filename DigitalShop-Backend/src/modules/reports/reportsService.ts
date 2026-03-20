@@ -569,4 +569,16 @@ export const reportsService = {
       throw error;
     }
   },
+
+  /**
+   * Supplier Payments Report
+   */
+  async getSupplierPaymentsReport(filters: { startDate: string; endDate: string }) {
+    try {
+      return await reportsRepository.getSupplierPaymentsReport(filters);
+    } catch (error: any) {
+      logger.error('Failed to get supplier payments report', { error, filters });
+      throw error;
+    }
+  },
 };

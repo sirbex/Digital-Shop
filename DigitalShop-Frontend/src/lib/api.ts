@@ -535,6 +535,10 @@ export const reportsApi = {
   getIncomeVsExpense: (params: { startDate: string; endDate: string }) =>
     api.get<ApiResponse>('/reports/income-vs-expense', { params }),
 
+  // Supplier / Purchase Reports
+  getSupplierPayments: (params: { startDate: string; endDate: string }) =>
+    api.get<ApiResponse>('/reports/supplier-payments', { params }),
+
   // Dashboard Summary
   getDashboard: () =>
     api.get<ApiResponse>('/reports/dashboard'),

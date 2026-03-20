@@ -809,6 +809,28 @@ export const reportsController = {
       res.status(500).json({ success: false, error: 'Failed to fetch income vs expense report' });
     }
   },
+
+  /**
+   * GET /api/reports/supplier-payments
+   * Supplier payments report with per-supplier breakdown
+   */
+  async getSupplierPaymentsReport(req: Request, res: Response): Promise<void> {
+    try {
+      const { startDate, endDate } = req.query;
+      if (!startDate || !endDate) {
+        res.status(400).json({ success: false, error: 'Start date and end date are required' });
+        return;
+      }
+      const data = await reportsService.getSupplierPaymentsReport({
+        startDate: startDate as string,
+        endDate: endDate as string,
+      });
+      res.json({ success: true, data });
+    } catch (error: any) {
+      logger.error('Error in getSupplierPaymentsReport:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch supplier payments report' });
+    }
+  },
 };
 
 
