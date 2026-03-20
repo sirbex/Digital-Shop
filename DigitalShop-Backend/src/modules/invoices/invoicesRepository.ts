@@ -35,6 +35,10 @@ export interface InvoicePaymentRow {
   processed_by_id: string | null;
   processed_by_name: string | null;
   created_at: string;
+  check_number: string | null;
+  check_status: string | null;
+  bank_name: string | null;
+  check_date: string | null;
 }
 
 export interface CreateInvoiceParams {
@@ -58,6 +62,10 @@ export interface CreatePaymentParams {
   referenceNumber?: string;
   notes?: string;
   processedById?: string;
+  checkNumber?: string;
+  checkStatus?: string;
+  bankName?: string;
+  checkDate?: string;
 }
 
 /**
@@ -212,9 +220,10 @@ export async function createInvoicePayment(
   const query = `
     INSERT INTO invoice_payments (
       receipt_number, invoice_id, payment_date, payment_method,
-      amount, reference_number, notes, processed_by_id
+      amount, reference_number, notes, processed_by_id,
+      check_number, check_status, bank_name, check_date
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     RETURNING *
   `;
 
@@ -228,6 +237,10 @@ export async function createInvoicePayment(
       params.referenceNumber || null,
       params.notes || null,
       params.processedById || null,
+      params.checkNumber || null,
+      params.checkStatus || null,
+      params.bankName || null,
+      params.checkDate || null,
     ]);
 
     logger.info('Invoice payment created', {
@@ -376,6 +389,161 @@ export async function getOverdueInvoices(pool: Pool): Promise<InvoiceRow[]> {
     return result.rows;
   } catch (error) {
     logger.error('Failed to get overdue invoices', error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// CHECK REGISTER FUNCTIONS
+// ============================================================================
+
+export interface CheckRegisterRow {
+  id: string;
+  receipt_number: string;
+  source: 'CUSTOMER' | 'SUPPLIER';
+  party_name: string;
+  party_id: string;
+  payment_date: string;
+  amount: string;
+  check_number: string | null;
+  check_status: string | null;
+  bank_name: string | null;
+  check_date: string | null;
+  reference_number: string | null;
+  notes: string | null;
+  processed_by_name: string | null;
+  created_at: string;
+}
+
+/**
+ * Get all check payments from both invoice_payments and supplier_payments
+ */
+export async function getCheckRegister(
+  pool: Pool,
+  filters?: {
+    checkStatus?: string;
+    startDate?: string;
+    endDate?: string;
+    source?: 'CUSTOMER' | 'SUPPLIER';
+  }
+): Promise<CheckRegisterRow[]> {
+  // Build WHERE clauses for filters
+  let customerWhere = `WHERE ip.payment_method = 'CHECK'`;
+  let supplierWhere = `WHERE sp.payment_method = 'CHECK'`;
+  const values: any[] = [];
+  let paramIndex = 1;
+
+  if (filters?.checkStatus) {
+    customerWhere += ` AND ip.check_status = $${paramIndex}`;
+    supplierWhere += ` AND sp.check_status = $${paramIndex}`;
+    values.push(filters.checkStatus);
+    paramIndex++;
+  }
+
+  if (filters?.startDate) {
+    customerWhere += ` AND ip.payment_date >= $${paramIndex}`;
+    supplierWhere += ` AND sp.payment_date >= $${paramIndex}`;
+    values.push(filters.startDate);
+    paramIndex++;
+  }
+
+  if (filters?.endDate) {
+    customerWhere += ` AND ip.payment_date <= $${paramIndex}`;
+    supplierWhere += ` AND sp.payment_date <= $${paramIndex}`;
+    values.push(filters.endDate);
+    paramIndex++;
+  }
+
+  // Build source filter
+  const parts: string[] = [];
+
+  if (!filters?.source || filters.source === 'CUSTOMER') {
+    parts.push(`
+      SELECT 
+        ip.id, ip.receipt_number, 'CUSTOMER' as source,
+        c.name as party_name, c.id as party_id,
+        ip.payment_date, ip.amount,
+        ip.check_number, ip.check_status, ip.bank_name, ip.check_date,
+        ip.reference_number, ip.notes,
+        u.full_name as processed_by_name,
+        ip.created_at
+      FROM invoice_payments ip
+      JOIN invoices i ON ip.invoice_id = i.id
+      JOIN customers c ON i.customer_id = c.id
+      LEFT JOIN users u ON ip.processed_by_id = u.id
+      ${customerWhere}
+    `);
+  }
+
+  if (!filters?.source || filters.source === 'SUPPLIER') {
+    parts.push(`
+      SELECT 
+        sp.id, sp.receipt_number, 'SUPPLIER' as source,
+        s.name as party_name, s.id as party_id,
+        sp.payment_date, sp.amount,
+        sp.check_number, sp.check_status, sp.bank_name, sp.check_date,
+        sp.reference_number, sp.notes,
+        u.full_name as processed_by_name,
+        sp.created_at
+      FROM supplier_payments sp
+      JOIN suppliers s ON sp.supplier_id = s.id
+      LEFT JOIN users u ON sp.processed_by_id = u.id
+      ${supplierWhere}
+    `);
+  }
+
+  const query = parts.join(' UNION ALL ') + ' ORDER BY payment_date DESC, created_at DESC';
+
+  try {
+    const result = await pool.query<CheckRegisterRow>(query, values);
+    return result.rows;
+  } catch (error) {
+    logger.error('Failed to get check register', { filters, error });
+    throw error;
+  }
+}
+
+/**
+ * Update check status on an invoice payment
+ */
+export async function updateInvoicePaymentCheckStatus(
+  pool: Pool,
+  paymentId: string,
+  checkStatus: string
+): Promise<InvoicePaymentRow> {
+  const query = `
+    UPDATE invoice_payments
+    SET check_status = $1
+    WHERE id = $2 AND payment_method = 'CHECK'
+    RETURNING *
+  `;
+
+  try {
+    const result = await pool.query<InvoicePaymentRow>(query, [checkStatus, paymentId]);
+    if (result.rows.length === 0) {
+      throw new Error('Check payment not found');
+    }
+    return result.rows[0];
+  } catch (error) {
+    logger.error('Failed to update check status', { paymentId, checkStatus, error });
+    throw error;
+  }
+}
+
+/**
+ * Delete an invoice payment (used for bounced check reversal)
+ */
+export async function deleteInvoicePayment(pool: Pool, paymentId: string): Promise<void> {
+  const query = `DELETE FROM invoice_payments WHERE id = $1 AND payment_method = 'CHECK'`;
+
+  try {
+    const result = await pool.query(query, [paymentId]);
+    if (result.rowCount === 0) {
+      throw new Error('Check payment not found');
+    }
+    logger.info('Invoice check payment deleted (bounced)', { paymentId });
+  } catch (error) {
+    logger.error('Failed to delete invoice payment', { paymentId, error });
     throw error;
   }
 }

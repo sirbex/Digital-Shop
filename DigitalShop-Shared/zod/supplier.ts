@@ -43,11 +43,16 @@ export const UpdateSupplierSchema = z.object({
 // Schema for recording a supplier payment
 export const RecordSupplierPaymentSchema = z.object({
   amount: z.number().positive('Amount must be greater than zero'),
-  paymentMethod: z.enum(['CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER']),
+  paymentMethod: z.enum(['CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER', 'CHECK']),
   paymentDate: z.string().optional(),
   purchaseOrderId: z.string().uuid().nullable().optional(),
   referenceNumber: z.string().max(200).optional(),
   notes: z.string().optional(),
+  // Check-specific fields (required when paymentMethod is CHECK)
+  checkNumber: z.string().max(50).optional(),
+  checkStatus: z.enum(['RECEIVED', 'DEPOSITED', 'CLEARED', 'BOUNCED', 'VOIDED']).optional(),
+  bankName: z.string().max(100).optional(),
+  checkDate: z.string().optional(),
 }).strict();
 
 // Supplier payment response schema
@@ -63,6 +68,10 @@ export const SupplierPaymentSchema = z.object({
   notes: z.string().nullable(),
   processedById: z.string().uuid().nullable(),
   createdAt: z.string(),
+  checkNumber: z.string().nullable().optional(),
+  checkStatus: z.string().nullable().optional(),
+  bankName: z.string().nullable().optional(),
+  checkDate: z.string().nullable().optional(),
 });
 
 // Inferred types

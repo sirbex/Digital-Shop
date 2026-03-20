@@ -36,6 +36,10 @@ export interface InvoicePayment {
   processedById: string | null;
   processedByName: string | null;
   createdAt: string;
+  checkNumber: string | null;
+  checkStatus: string | null;
+  bankName: string | null;
+  checkDate: string | null;
 }
 
 export interface CreateInvoiceData {
@@ -54,11 +58,15 @@ export interface CreateInvoiceData {
 export interface CreatePaymentData {
   invoiceId: string;
   paymentDate?: string;
-  paymentMethod: 'CASH' | 'CARD' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'CREDIT';
+  paymentMethod: 'CASH' | 'CARD' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'CREDIT' | 'CHECK';
   amount: number;
   referenceNumber?: string;
   notes?: string;
   processedById?: string;
+  checkNumber?: string;
+  checkStatus?: string;
+  bankName?: string;
+  checkDate?: string;
 }
 
 /**
@@ -104,6 +112,10 @@ function toInvoicePayment(row: invoicesRepository.InvoicePaymentRow): InvoicePay
     processedById: row.processed_by_id,
     processedByName: row.processed_by_name,
     createdAt: row.created_at,
+    checkNumber: row.check_number,
+    checkStatus: row.check_status,
+    bankName: row.bank_name,
+    checkDate: row.check_date,
   };
 }
 
@@ -238,6 +250,13 @@ export async function recordPayment(pool: Pool, data: CreatePaymentData): Promis
     throw new Error('Payment amount must be greater than zero');
   }
 
+  // Validate check fields when payment method is CHECK
+  if (data.paymentMethod === 'CHECK') {
+    if (!data.checkNumber) {
+      throw new Error('Check number is required for check payments');
+    }
+  }
+
   // Get invoice to validate payment
   const invoice = await invoicesRepository.getInvoiceById(pool, data.invoiceId);
 
@@ -262,6 +281,10 @@ export async function recordPayment(pool: Pool, data: CreatePaymentData): Promis
     referenceNumber: data.referenceNumber,
     notes: data.notes,
     processedById: data.processedById,
+    checkNumber: data.checkNumber,
+    checkStatus: data.paymentMethod === 'CHECK' ? (data.checkStatus || 'RECEIVED') : undefined,
+    bankName: data.bankName,
+    checkDate: data.checkDate,
   };
 
   const paymentRow = await invoicesRepository.createInvoicePayment(pool, params);
@@ -314,5 +337,118 @@ export async function getInvoiceSummary(pool: Pool, customerId?: string): Promis
     };
   } catch (error) {
     throw new Error('Failed to get invoice summary');
+  }
+}
+
+// ============================================================================
+// CHECK REGISTER FUNCTIONS
+// ============================================================================
+
+export interface CheckRegisterEntry {
+  id: string;
+  receiptNumber: string;
+  source: 'CUSTOMER' | 'SUPPLIER';
+  partyName: string;
+  partyId: string;
+  paymentDate: string;
+  amount: number;
+  checkNumber: string | null;
+  checkStatus: string | null;
+  bankName: string | null;
+  checkDate: string | null;
+  referenceNumber: string | null;
+  notes: string | null;
+  processedByName: string | null;
+  createdAt: string;
+}
+
+function toCheckRegisterEntry(row: invoicesRepository.CheckRegisterRow): CheckRegisterEntry {
+  return {
+    id: row.id,
+    receiptNumber: row.receipt_number,
+    source: row.source,
+    partyName: row.party_name,
+    partyId: row.party_id,
+    paymentDate: row.payment_date,
+    amount: parseFloat(row.amount),
+    checkNumber: row.check_number,
+    checkStatus: row.check_status,
+    bankName: row.bank_name,
+    checkDate: row.check_date,
+    referenceNumber: row.reference_number,
+    notes: row.notes,
+    processedByName: row.processed_by_name,
+    createdAt: row.created_at,
+  };
+}
+
+/**
+ * Get check register (all check payments from both sides)
+ */
+export async function getCheckRegister(
+  pool: Pool,
+  filters?: {
+    checkStatus?: string;
+    startDate?: string;
+    endDate?: string;
+    source?: 'CUSTOMER' | 'SUPPLIER';
+  }
+): Promise<CheckRegisterEntry[]> {
+  const rows = await invoicesRepository.getCheckRegister(pool, filters);
+  return rows.map(toCheckRegisterEntry);
+}
+
+/**
+ * Update check status (advance through lifecycle)
+ */
+export async function updateCheckStatus(
+  pool: Pool,
+  paymentId: string,
+  newStatus: string,
+  source: 'CUSTOMER' | 'SUPPLIER'
+): Promise<void> {
+  // Validate status transition
+  const validStatuses = ['RECEIVED', 'DEPOSITED', 'CLEARED', 'BOUNCED', 'VOIDED'];
+  if (!validStatuses.includes(newStatus)) {
+    throw new Error(`Invalid check status: ${newStatus}`);
+  }
+
+  if (source === 'CUSTOMER') {
+    await invoicesRepository.updateInvoicePaymentCheckStatus(pool, paymentId, newStatus);
+  } else {
+    // For supplier payments, direct update
+    const query = `
+      UPDATE supplier_payments
+      SET check_status = $1
+      WHERE id = $2 AND payment_method = 'CHECK'
+    `;
+    const result = await pool.query(query, [newStatus, paymentId]);
+    if (result.rowCount === 0) {
+      throw new Error('Supplier check payment not found');
+    }
+  }
+}
+
+/**
+ * Handle bounced check — reverse the payment
+ * The DB triggers will automatically recalculate balances
+ */
+export async function bounceCheck(
+  pool: Pool,
+  paymentId: string,
+  source: 'CUSTOMER' | 'SUPPLIER'
+): Promise<void> {
+  if (source === 'CUSTOMER') {
+    // Mark as bounced then delete — triggers recalculate invoice.amount_due and customer.balance
+    await invoicesRepository.deleteInvoicePayment(pool, paymentId);
+  } else {
+    // Delete supplier payment — trigger recalculates supplier.balance
+    const result = await pool.query(
+      `DELETE FROM supplier_payments WHERE id = $1 AND payment_method = 'CHECK'`,
+      [paymentId]
+    );
+    if (result.rowCount === 0) {
+      throw new Error('Supplier check payment not found');
+    }
   }
 }

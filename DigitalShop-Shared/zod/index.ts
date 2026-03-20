@@ -32,3 +32,6 @@ export * from './cashRegister';
 
 // Expense schemas and types
 export * from './expense';
+
+// Quotation schemas and types
+export * from './quotation';

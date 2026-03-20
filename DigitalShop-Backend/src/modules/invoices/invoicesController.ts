@@ -18,10 +18,14 @@ const createInvoiceSchema = z.object({
 
 const recordPaymentSchema = z.object({
   paymentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  paymentMethod: z.enum(['CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER', 'CREDIT']),
+  paymentMethod: z.enum(['CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER', 'CREDIT', 'CHECK']),
   amount: z.number().min(0.01),
   referenceNumber: z.string().optional(),
   notes: z.string().optional(),
+  checkNumber: z.string().max(50).optional(),
+  checkStatus: z.enum(['RECEIVED', 'DEPOSITED', 'CLEARED', 'BOUNCED', 'VOIDED']).optional(),
+  bankName: z.string().max(100).optional(),
+  checkDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 const invoiceFiltersSchema = z.object({
@@ -274,6 +278,111 @@ export async function getInvoicePayments(req: Request, res: Response): Promise<v
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve invoice payments',
+    });
+  }
+}
+
+// ============================================================================
+// CHECK REGISTER ENDPOINTS
+// ============================================================================
+
+const checkRegisterFiltersSchema = z.object({
+  checkStatus: z.enum(['RECEIVED', 'DEPOSITED', 'CLEARED', 'BOUNCED', 'VOIDED']).optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  source: z.enum(['CUSTOMER', 'SUPPLIER']).optional(),
+});
+
+const updateCheckStatusSchema = z.object({
+  checkStatus: z.enum(['RECEIVED', 'DEPOSITED', 'CLEARED', 'BOUNCED', 'VOIDED']),
+  source: z.enum(['CUSTOMER', 'SUPPLIER']),
+});
+
+/**
+ * GET /api/invoices/checks
+ * Get check register (all check payments across customer and supplier)
+ */
+export async function getCheckRegister(req: Request, res: Response): Promise<void> {
+  try {
+    const filters = checkRegisterFiltersSchema.parse(req.query);
+    const entries = await invoicesService.getCheckRegister(pool, filters);
+
+    res.json({
+      success: true,
+      data: entries,
+    });
+  } catch (error) {
+    logger.error('Controller error:', error);
+
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ success: false, error: error.errors[0].message });
+      return;
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve check register',
+    });
+  }
+}
+
+/**
+ * PATCH /api/invoices/checks/:id/status
+ * Update check status (advance through lifecycle)
+ */
+export async function updateCheckStatus(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const validated = updateCheckStatusSchema.parse(req.body);
+
+    await invoicesService.updateCheckStatus(pool, id, validated.checkStatus, validated.source);
+
+    res.json({
+      success: true,
+      message: `Check status updated to ${validated.checkStatus}`,
+    });
+  } catch (error) {
+    logger.error('Controller error:', error);
+
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ success: false, error: error.errors[0].message });
+      return;
+    }
+
+    res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update check status',
+    });
+  }
+}
+
+/**
+ * POST /api/invoices/checks/:id/bounce
+ * Handle bounced check — reverse the payment (triggers recalculate balances)
+ */
+export async function bounceCheck(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const sourceSchema = z.object({ source: z.enum(['CUSTOMER', 'SUPPLIER']) });
+    const { source } = sourceSchema.parse(req.body);
+
+    await invoicesService.bounceCheck(pool, id, source);
+
+    res.json({
+      success: true,
+      message: 'Check payment reversed (bounced). Balances recalculated.',
+    });
+  } catch (error) {
+    logger.error('Controller error:', error);
+
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ success: false, error: error.errors[0].message });
+      return;
+    }
+
+    res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to process bounced check',
     });
   }
 }

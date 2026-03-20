@@ -154,6 +154,16 @@ export const invoicesApi = {
   
   getPayments: (invoiceId: string) =>
     api.get<ApiResponse>(`/invoices/${invoiceId}/payments`),
+
+  // Check register
+  getCheckRegister: (params?: any) =>
+    api.get<ApiResponse>('/invoices/checks', { params }),
+  
+  updateCheckStatus: (paymentId: string, data: { checkStatus: string; source: 'CUSTOMER' | 'SUPPLIER' }) =>
+    api.patch<ApiResponse>(`/invoices/checks/${paymentId}/status`, data),
+  
+  bounceCheck: (paymentId: string, data: { source: 'CUSTOMER' | 'SUPPLIER' }) =>
+    api.post<ApiResponse>(`/invoices/checks/${paymentId}/bounce`, data),
 };
 
 // Sales API
@@ -567,8 +577,33 @@ export const expensesApi = {
     api.delete<ApiResponse>(`/expenses/${id}`),
 };
 
+// Quotations API
+export const quotationsApi = {
+  getAll: (params?: any) =>
+    api.get<ApiResponse>('/quotations', { params }),
+  
+  getById: (id: string) =>
+    api.get<ApiResponse>(`/quotations/${id}`),
+  
+  create: (data: any) =>
+    api.post<ApiResponse>('/quotations', data),
+  
+  update: (id: string, data: any) =>
+    api.put<ApiResponse>(`/quotations/${id}`, data),
+  
+  updateStatus: (id: string, status: string) =>
+    api.patch<ApiResponse>(`/quotations/${id}/status`, { status }),
+  
+  convertToSale: (id: string, data: { paymentMethod: string; amountPaid: number }) =>
+    api.post<ApiResponse>(`/quotations/${id}/convert`, data),
+  
+  delete: (id: string) =>
+    api.delete<ApiResponse>(`/quotations/${id}`),
+};
+
 // System Settings API
 export const systemApi = {
+
   getSettings: () =>
     api.get<ApiResponse>('/system/settings'),
   

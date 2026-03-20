@@ -22,7 +22,7 @@ CREATE TYPE user_role AS ENUM ('ADMIN', 'MANAGER', 'CASHIER', 'STAFF');
 CREATE TYPE sale_status AS ENUM ('COMPLETED', 'VOID', 'REFUNDED');
 
 -- Payment methods
-CREATE TYPE payment_method AS ENUM ('CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER', 'CREDIT');
+CREATE TYPE payment_method AS ENUM ('CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER', 'CREDIT', 'CHECK');
 
 -- Purchase order status
 CREATE TYPE purchase_order_status AS ENUM ('DRAFT', 'SENT', 'APPROVED', 'PARTIAL', 'RECEIVED', 'CANCELLED');

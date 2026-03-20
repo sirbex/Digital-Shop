@@ -7,7 +7,10 @@ export const SaleItemTypeEnum = z.enum(['PRODUCT', 'SERVICE', 'CUSTOM']);
 export const SaleStatusEnum = z.enum(['COMPLETED', 'VOID', 'REFUNDED']);
 
 // Payment method enum
-export const PaymentMethodEnum = z.enum(['CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER', 'CREDIT']);
+export const PaymentMethodEnum = z.enum(['CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER', 'CREDIT', 'CHECK']);
+
+// Check status enum
+export const CheckStatusEnum = z.enum(['RECEIVED', 'DEPOSITED', 'CLEARED', 'BOUNCED', 'VOIDED']);
 
 // Sale item schema
 export const SaleItemSchema = z.object({
@@ -102,6 +105,7 @@ export const PrintReceiptSchema = z.object({
 export type SaleItemType = z.infer<typeof SaleItemTypeEnum>;
 export type SaleStatus = z.infer<typeof SaleStatusEnum>;
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
+export type CheckStatus = z.infer<typeof CheckStatusEnum>;
 export type SaleItem = z.infer<typeof SaleItemSchema>;
 export type Sale = z.infer<typeof SaleSchema>;
 export type CreateSale = z.infer<typeof CreateSaleSchema>;

@@ -345,6 +345,10 @@ export interface SupplierPaymentRow {
   notes: string | null;
   processed_by_id: string | null;
   created_at: string;
+  check_number: string | null;
+  check_status: string | null;
+  bank_name: string | null;
+  check_date: string | null;
 }
 
 export interface CreateSupplierPaymentParams {
@@ -356,6 +360,10 @@ export interface CreateSupplierPaymentParams {
   referenceNumber?: string;
   notes?: string;
   processedById: string;
+  checkNumber?: string;
+  checkStatus?: string;
+  bankName?: string;
+  checkDate?: string;
 }
 
 /**
@@ -378,9 +386,10 @@ export async function createSupplierPayment(
   const query = `
     INSERT INTO supplier_payments (
       receipt_number, supplier_id, purchase_order_id, payment_date,
-      payment_method, amount, reference_number, notes, processed_by_id
+      payment_method, amount, reference_number, notes, processed_by_id,
+      check_number, check_status, bank_name, check_date
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
     RETURNING *
   `;
 
@@ -395,6 +404,10 @@ export async function createSupplierPayment(
       params.referenceNumber || null,
       params.notes || null,
       params.processedById,
+      params.checkNumber || null,
+      params.checkStatus || null,
+      params.bankName || null,
+      params.checkDate || null,
     ]);
 
     logger.info('Supplier payment created', {

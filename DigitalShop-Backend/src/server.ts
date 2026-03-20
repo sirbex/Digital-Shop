@@ -116,6 +116,7 @@ import invoicesRoutes from './modules/invoices/invoicesRoutes.js';
 import expensesRoutes from './modules/expenses/expensesRoutes.js';
 import systemRoutes from './modules/system/systemRoutes.js';
 import rolesRoutes from './modules/roles/rolesRoutes.js';
+import quotationsRoutes from './modules/quotations/quotationsRoutes.js';
 
 // Mount routes
 app.use('/api/auth', authRoutes);
@@ -135,6 +136,7 @@ app.use('/api/invoices', invoicesRoutes);
 app.use('/api/expenses', expensesRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/roles', rolesRoutes);
+app.use('/api/quotations', quotationsRoutes);
 app.use('/api/pos/hold', holdRoutes);
 
 // ============================================================================

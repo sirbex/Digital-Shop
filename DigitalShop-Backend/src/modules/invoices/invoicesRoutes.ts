@@ -28,6 +28,25 @@ router.get('/summary', invoicesController.getInvoiceSummary);
 router.get('/overdue', invoicesController.getOverdueInvoices);
 
 /**
+ * GET /api/invoices/checks
+ * Get check register (all check payments)
+ * Must be before /:id to avoid matching 'checks' as ID
+ */
+router.get('/checks', invoicesController.getCheckRegister);
+
+/**
+ * PATCH /api/invoices/checks/:id/status
+ * Update check status (Manager+)
+ */
+router.patch('/checks/:id/status', requireManager, invoicesController.updateCheckStatus);
+
+/**
+ * POST /api/invoices/checks/:id/bounce
+ * Handle bounced check (Manager+)
+ */
+router.post('/checks/:id/bounce', requireManager, invoicesController.bounceCheck);
+
+/**
  * GET /api/invoices/:id
  * Get invoice by ID with payments
  */

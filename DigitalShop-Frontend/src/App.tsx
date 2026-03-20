@@ -21,6 +21,8 @@ const ReportsPage = lazy(() => import('./pages/ReportsPage').then(m => ({ defaul
 const ExpensesPage = lazy(() => import('./pages/ExpensesPage'));
 const UsersPage = lazy(() => import('./pages/UsersPage').then(m => ({ default: m.UsersPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const CheckRegisterPage = lazy(() => import('./pages/CheckRegisterPage'));
+const QuotationsPage = lazy(() => import('./pages/QuotationsPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,6 +77,8 @@ function App() {
                 <Route path="users" element={<PermissionGate permission="users.read"><UsersPage /></PermissionGate>} />
                 <Route path="settings" element={<PermissionGate anyOf={['settings.read', 'settings.update', 'settings.roles', 'settings.reset']}><SettingsPage /></PermissionGate>} />
                 <Route path="reports" element={<PermissionGate permission="reports.sales"><ReportsPage /></PermissionGate>} />
+                <Route path="check-register" element={<PermissionGate permission="sales.read"><CheckRegisterPage /></PermissionGate>} />
+                <Route path="quotations" element={<PermissionGate permission="sales.read"><QuotationsPage /></PermissionGate>} />
               </Route>
 
               <Route path="*" element={<Navigate to="/" replace />} />

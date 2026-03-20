@@ -26,6 +26,7 @@ export type {
 export type {
   SaleStatus,
   PaymentMethod,
+  CheckStatus,
   SaleItem,
   Sale,
   CreateSale,
@@ -38,6 +39,13 @@ export type {
   RecordSupplierPayment,
   SupplierPayment,
 } from '../zod/supplier';
+
+export type {
+  QuotationStatus,
+  QuotationItem,
+  CreateQuotation,
+  UpdateQuotation,
+} from '../zod/quotation';
 
 // API Response types
 export interface ApiResponse<T = any> {

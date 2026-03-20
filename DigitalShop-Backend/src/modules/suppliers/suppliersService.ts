@@ -202,6 +202,10 @@ export interface SupplierPayment {
   processedById: string | null;
   processedByName?: string | null;
   createdAt: string;
+  checkNumber: string | null;
+  checkStatus: string | null;
+  bankName: string | null;
+  checkDate: string | null;
 }
 
 export interface RecordSupplierPaymentData {
@@ -211,6 +215,10 @@ export interface RecordSupplierPaymentData {
   purchaseOrderId?: string | null;
   referenceNumber?: string;
   notes?: string;
+  checkNumber?: string;
+  checkStatus?: string;
+  bankName?: string;
+  checkDate?: string;
 }
 
 function toSupplierPayment(row: any): SupplierPayment {
@@ -227,6 +235,10 @@ function toSupplierPayment(row: any): SupplierPayment {
     processedById: row.processed_by_id,
     processedByName: row.processed_by_name || null,
     createdAt: row.created_at,
+    checkNumber: row.check_number || null,
+    checkStatus: row.check_status || null,
+    bankName: row.bank_name || null,
+    checkDate: row.check_date || null,
   };
 }
 
@@ -249,6 +261,11 @@ export async function recordSupplierPayment(
     );
   }
 
+  // Validate check fields when payment method is CHECK
+  if (data.paymentMethod === 'CHECK' && !data.checkNumber) {
+    throw new Error('Check number is required for check payments');
+  }
+
   const row = await suppliersRepository.createSupplierPayment(pool, {
     supplierId,
     purchaseOrderId: data.purchaseOrderId,
@@ -258,6 +275,10 @@ export async function recordSupplierPayment(
     referenceNumber: data.referenceNumber,
     notes: data.notes,
     processedById,
+    checkNumber: data.checkNumber,
+    checkStatus: data.paymentMethod === 'CHECK' ? (data.checkStatus || 'RECEIVED') : undefined,
+    bankName: data.bankName,
+    checkDate: data.checkDate,
   });
 
   logger.info('Supplier payment recorded', {

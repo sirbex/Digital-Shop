@@ -17,7 +17,9 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCog,
-  Settings
+  Settings,
+  FileCheck,
+  ClipboardList
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -38,6 +40,8 @@ const navItems: NavItem[] = [
   { name: 'Customers', path: '/customers', icon: Users, permissionKey: 'customers.read' },
   { name: 'Suppliers', path: '/suppliers', icon: Truck, permissionKey: 'suppliers.read' },
   { name: 'Expenses', path: '/expenses', icon: Wallet, permissionKey: 'expenses.read' },
+  { name: 'Quotations', path: '/quotations', icon: ClipboardList, permissionKey: 'sales.read' },
+  { name: 'Check Register', path: '/check-register', icon: FileCheck, permissionKey: 'sales.read' },
   { name: 'Cash Register', path: '/cash-register', icon: Receipt, permissionKey: 'cashregister.view' },
   { name: 'Users', path: '/users', icon: UserCog, permissionKey: 'users.read' },
   { name: 'Settings', path: '/settings', icon: Settings, permissionKey: 'settings.read' },

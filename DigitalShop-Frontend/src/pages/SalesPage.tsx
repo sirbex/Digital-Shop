@@ -653,6 +653,7 @@ export function SalesPage() {
               <option value="MOBILE_MONEY">Mobile Money</option>
               <option value="BANK_TRANSFER">Bank Transfer</option>
               <option value="CREDIT">Credit</option>
+              <option value="CHECK">Check</option>
             </select>
           </div>
           <div>

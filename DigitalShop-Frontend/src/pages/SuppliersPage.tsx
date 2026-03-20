@@ -3,6 +3,8 @@ import { suppliersApi, purchasesApi } from '../lib/api';
 import { usePermissions } from '../hooks/usePermissions';
 import { useSettings } from '../contexts/SettingsContext';
 import { RecordSupplierPaymentModal } from '../components/suppliers/RecordSupplierPaymentModal';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Payment Terms options
 const PAYMENT_TERMS = [
@@ -752,6 +754,217 @@ function SupplierDetailModal({ supplier, onClose, onEdit, onPay }: SupplierDetai
 
   const paymentTermInfo = PAYMENT_TERMS.find((t) => t.value === supplier.paymentTerms);
 
+  // PDF Export for Purchase Order
+  const handleExportPOPDF = (order: any) => {
+    const doc = new jsPDF();
+    const cs = settings.currencySymbol || 'UGX';
+    const fmtNum = (n: number) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 });
+
+    // Header
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(settings.businessName || 'DigitalShop', 14, 20);
+    if (settings.businessAddress) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(settings.businessAddress, 14, 27);
+    }
+    if (settings.businessPhone) {
+      doc.setFontSize(9);
+      doc.text(`Tel: ${settings.businessPhone}`, 14, 32);
+    }
+
+    // Title
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PURCHASE ORDER', 196, 20, { align: 'right' });
+
+    // Status badge
+    const statusColors: Record<string, { r: number; g: number; b: number }> = {
+      DRAFT: { r: 107, g: 114, b: 128 },
+      APPROVED: { r: 59, g: 130, b: 246 },
+      SENT: { r: 245, g: 158, b: 11 },
+      RECEIVED: { r: 16, g: 185, b: 129 },
+      CANCELLED: { r: 239, g: 68, b: 68 },
+    };
+    const sc = statusColors[order.status] || statusColors.DRAFT;
+    doc.setFillColor(sc.r, sc.g, sc.b);
+    doc.roundedRect(155, 24, 41, 8, 2, 2, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.text(order.status, 175.5, 29.5, { align: 'center' });
+    doc.setTextColor(0, 0, 0);
+
+    // PO Details
+    const detailsY = 45;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PO Number:', 14, detailsY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(order.orderNumber || 'N/A', 55, detailsY);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Order Date:', 14, detailsY + 7);
+    doc.setFont('helvetica', 'normal');
+    doc.text(formatDate(order.orderDate), 55, detailsY + 7);
+
+    if (order.expectedDeliveryDate) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Expected:', 14, detailsY + 14);
+      doc.setFont('helvetica', 'normal');
+      doc.text(formatDate(order.expectedDeliveryDate), 55, detailsY + 14);
+    }
+
+    // Supplier info
+    doc.setFont('helvetica', 'bold');
+    doc.text('Supplier:', 120, detailsY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(supplier.name, 120, detailsY + 7);
+    if (supplier.phone) doc.text(`Tel: ${supplier.phone}`, 120, detailsY + 14);
+    if (supplier.email) doc.text(supplier.email, 120, detailsY + 21);
+
+    // Items table (if items available)
+    const items = order.items || [];
+    if (items.length > 0) {
+      const tableData = items.map((item: any) => [
+        item.productName || item.product_name || 'Unknown',
+        (item.quantity || item.ordered_quantity || 0).toString(),
+        `${cs} ${fmtNum(item.unitCost || item.unit_cost || 0)}`,
+        `${cs} ${fmtNum((item.quantity || 0) * (item.unitCost || item.unit_cost || 0))}`,
+      ]);
+
+      autoTable(doc, {
+        startY: detailsY + 30,
+        head: [['Product', 'Quantity', 'Unit Cost', 'Total']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+        styles: { fontSize: 9, cellPadding: 3 },
+        columnStyles: {
+          0: { cellWidth: 70 },
+          1: { halign: 'center', cellWidth: 25 },
+          2: { halign: 'right', cellWidth: 40 },
+          3: { halign: 'right', cellWidth: 40 },
+        },
+      });
+    }
+
+    // Total
+    const finalY = (doc as any).lastAutoTable?.finalY || detailsY + 35;
+    doc.setFillColor(240, 240, 240);
+    doc.rect(130, finalY + 10, 66, 10, 'F');
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Total:', 132, finalY + 17);
+    doc.text(`${cs} ${fmtNum(order.totalAmount)}`, 194, finalY + 17, { align: 'right' });
+
+    // Notes
+    if (order.notes) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      const noteLines = doc.splitTextToSize(order.notes, 170);
+      doc.text(noteLines, 14, finalY + 30);
+    }
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text(`Generated on ${new Date().toLocaleString()}`, 14, 285);
+    doc.text(`${settings.businessName || 'DigitalShop'} - Purchase Order`, 196, 285, { align: 'right' });
+
+    doc.save(`PurchaseOrder_${order.orderNumber || order.id}.pdf`);
+  };
+
+  // PDF Export for Supplier Statement
+  const handleExportSupplierPDF = () => {
+    const doc = new jsPDF();
+    const cs = settings.currencySymbol || 'UGX';
+    const fmtNum = (n: number) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 });
+
+    // Header
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(settings.businessName || 'DigitalShop', 14, 20);
+
+    doc.setFontSize(14);
+    doc.text('SUPPLIER STATEMENT', 196, 20, { align: 'right' });
+
+    // Supplier info
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Supplier: ${supplier.name}`, 14, 35);
+    if (supplier.contactPerson) doc.text(`Contact: ${supplier.contactPerson}`, 14, 42);
+    if (supplier.phone) doc.text(`Phone: ${supplier.phone}`, 14, 49);
+    if (supplier.email) doc.text(`Email: ${supplier.email}`, 14, 56);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Outstanding Balance: ${cs} ${fmtNum(supplier.balance || 0)}`, 120, 35);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Payment Terms: ${paymentTermInfo?.label || supplier.paymentTerms || 'N/A'}`, 120, 42);
+    doc.text(`Status: ${supplier.isActive ? 'Active' : 'Inactive'}`, 120, 49);
+
+    let currentY = 65;
+
+    // Purchase Orders section
+    if (orders.length > 0) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Purchase Orders', 14, currentY);
+
+      const orderData = orders.map((o: any) => [
+        o.orderNumber || 'N/A',
+        formatDate(o.orderDate),
+        o.status || 'N/A',
+        `${cs} ${fmtNum(o.totalAmount || 0)}`,
+        o.expectedDeliveryDate ? formatDate(o.expectedDeliveryDate) : '-',
+      ]);
+
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [['PO Number', 'Date', 'Status', 'Amount', 'Expected Delivery']],
+        body: orderData,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+        styles: { fontSize: 8, cellPadding: 3 },
+        columnStyles: { 3: { halign: 'right' } },
+      });
+      currentY = (doc as any).lastAutoTable?.finalY + 10 || currentY + 40;
+    }
+
+    // Payments section
+    if (payments.length > 0) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Payments', 14, currentY);
+
+      const paymentData = payments.map((p: any) => [
+        p.receiptNumber || 'N/A',
+        formatDate(p.paymentDate),
+        (p.paymentMethod || '').replace('_', ' '),
+        `${cs} ${fmtNum(p.amount || 0)}`,
+        p.referenceNumber || '-',
+      ]);
+
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [['Receipt #', 'Date', 'Method', 'Amount', 'Reference']],
+        body: paymentData,
+        theme: 'striped',
+        headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+        styles: { fontSize: 8, cellPadding: 3 },
+        columnStyles: { 3: { halign: 'right' } },
+      });
+    }
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text(`Generated on ${new Date().toLocaleString()}`, 14, 285);
+    doc.text(`${settings.businessName || 'DigitalShop'} - Supplier Statement`, 196, 285, { align: 'right' });
+
+    doc.save(`Supplier_Statement_${supplier.name.replace(/\s+/g, '_')}.pdf`);
+  };
+
   // Load purchase orders for this supplier
   const loadOrders = async () => {
     if (orders.length > 0) return;
@@ -962,7 +1175,16 @@ function SupplierDetailModal({ supplier, onClose, onEdit, onPay }: SupplierDetai
                         <div className="text-sm text-gray-600">
                           {order.expectedDeliveryDate && <>Expected: {formatDate(order.expectedDeliveryDate)}</>}
                         </div>
-                        <div className="text-lg font-bold text-gray-900">{fmtCurrency(order.totalAmount)}</div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleExportPOPDF(order); }}
+                            className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                            title="Download PDF"
+                          >
+                            📄 PDF
+                          </button>
+                          <div className="text-lg font-bold text-gray-900">{fmtCurrency(order.totalAmount)}</div>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1010,26 +1232,34 @@ function SupplierDetailModal({ supplier, onClose, onEdit, onPay }: SupplierDetai
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-          <button onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-            Close
+        <div className="flex justify-between items-center pt-4 border-t border-gray-200 mt-6">
+          <button
+            onClick={handleExportSupplierPDF}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm"
+          >
+            📄 Export Statement PDF
           </button>
-          {modalPerms.canEditSupplier && supplier.balance > 0 && (
-            <button
-              onClick={onPay}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-            >
-              💰 Record Payment
+          <div className="flex gap-3">
+            <button onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              Close
             </button>
-          )}
-          {modalPerms.canEditSupplier && (
-            <button
-              onClick={onEdit}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-            >
-              ✏️ Edit Supplier
-            </button>
-          )}
+            {modalPerms.canEditSupplier && supplier.balance > 0 && (
+              <button
+                onClick={onPay}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+              >
+                💰 Record Payment
+              </button>
+            )}
+            {modalPerms.canEditSupplier && (
+              <button
+                onClick={onEdit}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              >
+                ✏️ Edit Supplier
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

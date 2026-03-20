@@ -7,6 +7,7 @@ const PAYMENT_METHODS = [
   { value: 'BANK_TRANSFER', label: '🏦 Bank Transfer' },
   { value: 'MOBILE_MONEY', label: '📱 Mobile Money' },
   { value: 'CARD', label: '💳 Card' },
+  { value: 'CHECK', label: '📝 Check' },
 ];
 
 interface RecordSupplierPaymentModalProps {
@@ -24,8 +25,13 @@ export function RecordSupplierPaymentModal({ supplier, onClose, onSuccess }: Rec
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  // Check-specific fields
+  const [checkNumber, setCheckNumber] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [checkDate, setCheckDate] = useState('');
 
   const parsedAmount = parseFloat(amount) || 0;
+  const isCheck = paymentMethod === 'CHECK';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +47,11 @@ export function RecordSupplierPaymentModal({ supplier, onClose, onSuccess }: Rec
       return;
     }
 
+    if (isCheck && !checkNumber.trim()) {
+      setError('Check number is required for check payments');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const response = await suppliersApi.recordPayment(supplier.id, {
@@ -49,6 +60,11 @@ export function RecordSupplierPaymentModal({ supplier, onClose, onSuccess }: Rec
         paymentDate,
         referenceNumber: referenceNumber || undefined,
         notes: notes || undefined,
+        ...(isCheck && {
+          checkNumber: checkNumber.trim(),
+          bankName: bankName.trim() || undefined,
+          checkDate: checkDate || undefined,
+        }),
       });
 
       if (response.data.success) {
@@ -132,6 +148,50 @@ export function RecordSupplierPaymentModal({ supplier, onClose, onSuccess }: Rec
               ))}
             </div>
           </div>
+
+          {/* Check-specific fields */}
+          {isCheck && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-3">
+              <div className="text-sm font-medium text-blue-700">Check Details</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Check Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={checkNumber}
+                    onChange={(e) => setCheckNumber(e.target.value)}
+                    placeholder="e.g. 001234"
+                    maxLength={50}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Bank Name</label>
+                  <input
+                    type="text"
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    placeholder="e.g. Stanbic Bank"
+                    maxLength={100}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Date on Check</label>
+                <input
+                  type="date"
+                  value={checkDate}
+                  onChange={(e) => setCheckDate(e.target.value)}
+                  title="Date written on check"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Payment Date */}
           <div>
