@@ -184,12 +184,20 @@ export default function InvoiceDetailModal({
 
     const doc = new jsPDF();
 
-    // Header
+    // Header — Company Details
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text(settings.businessName, 14, 20);
+    doc.text(settings.businessName || 'DigitalShop', 14, 20);
+    let hdrY = 27;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    if (settings.businessAddress) { doc.text(settings.businessAddress, 14, hdrY); hdrY += 5; }
+    if (settings.businessPhone) { doc.text(`Tel: ${settings.businessPhone}`, 14, hdrY); hdrY += 5; }
+    if (settings.businessEmail) { doc.text(`Email: ${settings.businessEmail}`, 14, hdrY); hdrY += 5; }
+    if (settings.taxNumber) { doc.text(`TIN: ${settings.taxNumber}`, 14, hdrY); hdrY += 5; }
 
     doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
     doc.text('INVOICE', 196, 20, { align: 'right' });
 
     // Invoice number & status
@@ -199,15 +207,20 @@ export default function InvoiceDetailModal({
     doc.setFont('helvetica', 'normal');
     doc.text(`Status: ${getStatusLabel(invoice.status)}`, 196, 34, { align: 'right' });
 
+    // Divider below header
+    const infoDivY = Math.max(hdrY, 38);
+    doc.setLineWidth(0.3);
+    doc.line(14, infoDivY, 196, infoDivY);
+
     // Customer info
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('Bill To:', 14, 38);
+    doc.text('Bill To:', 14, infoDivY + 6);
     doc.setFont('helvetica', 'normal');
-    doc.text(invoice.customerName, 14, 44);
+    doc.text(invoice.customerName, 14, infoDivY + 12);
 
     // Dates
-    let yPos = 52;
+    let yPos = infoDivY + 20;
     doc.setFont('helvetica', 'bold');
     doc.text('Issue Date:', 14, yPos);
     doc.setFont('helvetica', 'normal');

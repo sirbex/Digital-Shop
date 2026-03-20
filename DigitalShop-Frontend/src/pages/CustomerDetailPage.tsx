@@ -269,37 +269,47 @@ export default function CustomerDetailPage() {
 
     const doc = new jsPDF();
 
-    // Header
+    // Header — Company Details
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text(settings.businessName, 14, 20);
+    doc.text(settings.businessName || 'DigitalShop', 14, 20);
+    let csHdrY = 27;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    if (settings.businessAddress) { doc.text(settings.businessAddress, 14, csHdrY); csHdrY += 5; }
+    if (settings.businessPhone) { doc.text(`Tel: ${settings.businessPhone}`, 14, csHdrY); csHdrY += 5; }
+    if (settings.businessEmail) { doc.text(`Email: ${settings.businessEmail}`, 14, csHdrY); csHdrY += 5; }
+    if (settings.taxNumber) { doc.text(`TIN: ${settings.taxNumber}`, 14, csHdrY); csHdrY += 5; }
 
     doc.setFontSize(14);
-    doc.text('Customer Statement', 14, 30);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Customer Statement', 14, csHdrY + 2);
 
     // Customer info section
+    const csInfoStart = csHdrY + 12;
+    let csInfoY = csInfoStart;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Customer: ${customer.name}`, 14, 42);
-    if (customer.phone) doc.text(`Phone: ${customer.phone}`, 14, 48);
-    if (customer.email) doc.text(`Email: ${customer.email}`, 14, 54);
-    if (customer.address) doc.text(`Address: ${customer.address}`, 14, 60);
+    doc.text(`Customer: ${customer.name}`, 14, csInfoY);
+    if (customer.phone) { csInfoY += 6; doc.text(`Phone: ${customer.phone}`, 14, csInfoY); }
+    if (customer.email) { csInfoY += 6; doc.text(`Email: ${customer.email}`, 14, csInfoY); }
+    if (customer.address) { csInfoY += 6; doc.text(`Address: ${customer.address}`, 14, csInfoY); }
 
     // Date range and balance info (right side)
     const dateRangeText = statementStartDate || statementEndDate
       ? `Period: ${statementStartDate || 'Start'} to ${statementEndDate || 'Present'}`
       : `As of: ${new Date().toLocaleDateString('en-UG')}`;
-    doc.text(dateRangeText, 196, 42, { align: 'right' });
+    doc.text(dateRangeText, 196, csInfoStart, { align: 'right' });
 
     const balanceAmount = Math.abs(customer.balance);
     const balanceLabel = customer.balance < 0 ? 'Outstanding (Owes)' : 'Credit Balance';
     doc.setFont('helvetica', 'bold');
-    doc.text(`${balanceLabel}: ${formatCurrencyPlain(balanceAmount)}`, 196, 48, { align: 'right' });
-    doc.text(`Credit Limit: ${formatCurrencyPlain(customer.creditLimit)}`, 196, 54, { align: 'right' });
+    doc.text(`${balanceLabel}: ${formatCurrencyPlain(balanceAmount)}`, 196, csInfoStart + 6, { align: 'right' });
+    doc.text(`Credit Limit: ${formatCurrencyPlain(customer.creditLimit)}`, 196, csInfoStart + 12, { align: 'right' });
     doc.setFont('helvetica', 'normal');
 
     // Divider line
-    const infoEndY = customer.address ? 66 : customer.email ? 60 : customer.phone ? 54 : 48;
+    const infoEndY = Math.max(csInfoY, csInfoStart + 14) + 4;
     doc.setLineWidth(0.5);
     doc.line(14, infoEndY, 196, infoEndY);
 
@@ -455,7 +465,11 @@ export default function CustomerDetailPage() {
         <body>
           <div class="header">
             <div>
-              <h1>${settings.businessName}</h1>
+              <h1>${settings.businessName || 'DigitalShop'}</h1>
+              ${settings.businessAddress ? `<p style="margin:0;font-size:11px;color:#4b5563">${settings.businessAddress}</p>` : ''}
+              ${settings.businessPhone ? `<p style="margin:0;font-size:11px;color:#4b5563">Tel: ${settings.businessPhone}</p>` : ''}
+              ${settings.businessEmail ? `<p style="margin:0;font-size:11px;color:#4b5563">Email: ${settings.businessEmail}</p>` : ''}
+              ${settings.taxNumber ? `<p style="margin:0;font-size:11px;color:#4b5563">TIN: ${settings.taxNumber}</p>` : ''}
               <h2>Customer Statement</h2>
             </div>
             <div class="meta-right">

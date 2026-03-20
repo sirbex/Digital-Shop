@@ -806,6 +806,18 @@ function SupplierDetailModal({ supplier, onClose, onEdit, onPay }: SupplierDetai
       doc.setFontSize(9);
       doc.text(`Tel: ${settings.businessPhone}`, 14, 32);
     }
+    let poHdrY = settings.businessPhone ? 37 : (settings.businessAddress ? 32 : 27);
+    if (settings.businessEmail) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Email: ${settings.businessEmail}`, 14, poHdrY);
+      poHdrY += 5;
+    }
+    if (settings.taxNumber) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`TIN: ${settings.taxNumber}`, 14, poHdrY);
+    }
 
     // Title
     doc.setFontSize(16);
@@ -914,29 +926,43 @@ function SupplierDetailModal({ supplier, onClose, onEdit, onPay }: SupplierDetai
     const cs = settings.currencySymbol || 'UGX';
     const fmtNum = (n: number) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 });
 
-    // Header
+    // Header — Company Details
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text(settings.businessName || 'DigitalShop', 14, 20);
+    let ssHdrY = 27;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    if (settings.businessAddress) { doc.text(settings.businessAddress, 14, ssHdrY); ssHdrY += 5; }
+    if (settings.businessPhone) { doc.text(`Tel: ${settings.businessPhone}`, 14, ssHdrY); ssHdrY += 5; }
+    if (settings.businessEmail) { doc.text(`Email: ${settings.businessEmail}`, 14, ssHdrY); ssHdrY += 5; }
+    if (settings.taxNumber) { doc.text(`TIN: ${settings.taxNumber}`, 14, ssHdrY); ssHdrY += 5; }
 
     doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
     doc.text('SUPPLIER STATEMENT', 196, 20, { align: 'right' });
 
+    // Divider
+    const ssDivY = Math.max(ssHdrY, 34);
+    doc.setLineWidth(0.3);
+    doc.line(14, ssDivY, 196, ssDivY);
+
     // Supplier info
+    let ssInfoY = ssDivY + 6;
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Supplier: ${supplier.name}`, 14, 35);
-    if (supplier.contactPerson) doc.text(`Contact: ${supplier.contactPerson}`, 14, 42);
-    if (supplier.phone) doc.text(`Phone: ${supplier.phone}`, 14, 49);
-    if (supplier.email) doc.text(`Email: ${supplier.email}`, 14, 56);
+    doc.text(`Supplier: ${supplier.name}`, 14, ssInfoY);
+    if (supplier.contactPerson) { ssInfoY += 7; doc.text(`Contact: ${supplier.contactPerson}`, 14, ssInfoY); }
+    if (supplier.phone) { ssInfoY += 7; doc.text(`Phone: ${supplier.phone}`, 14, ssInfoY); }
+    if (supplier.email) { ssInfoY += 7; doc.text(`Email: ${supplier.email}`, 14, ssInfoY); }
 
     doc.setFont('helvetica', 'bold');
-    doc.text(`Outstanding Balance: ${cs} ${fmtNum(supplier.balance || 0)}`, 120, 35);
+    doc.text(`Outstanding Balance: ${cs} ${fmtNum(supplier.balance || 0)}`, 120, ssDivY + 6);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Payment Terms: ${paymentTermInfo?.label || supplier.paymentTerms || 'N/A'}`, 120, 42);
-    doc.text(`Status: ${supplier.isActive ? 'Active' : 'Inactive'}`, 120, 49);
+    doc.text(`Payment Terms: ${paymentTermInfo?.label || supplier.paymentTerms || 'N/A'}`, 120, ssDivY + 13);
+    doc.text(`Status: ${supplier.isActive ? 'Active' : 'Inactive'}`, 120, ssDivY + 20);
 
-    let currentY = 65;
+    let currentY = Math.max(ssInfoY, ssDivY + 24) + 8;
 
     // Purchase Orders section
     if (orders.length > 0) {

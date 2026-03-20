@@ -279,6 +279,21 @@ export function ReportsPage() {
       plDoc.line(m, y, pw - m, y);
       y += 8;
 
+      // Company Header
+      plDoc.setFontSize(14);
+      plDoc.setFont('helvetica', 'bold');
+      plDoc.setTextColor(25, 50, 80);
+      plDoc.text(settings.businessName || 'DigitalShop', m, y);
+      let plHdrY = y + 5;
+      plDoc.setFontSize(8);
+      plDoc.setFont('helvetica', 'normal');
+      plDoc.setTextColor(100, 100, 100);
+      if (settings.businessAddress) { plDoc.text(settings.businessAddress, m, plHdrY); plHdrY += 4; }
+      if (settings.businessPhone) { plDoc.text(`Tel: ${settings.businessPhone}`, m, plHdrY); plHdrY += 4; }
+      if (settings.businessEmail) { plDoc.text(`Email: ${settings.businessEmail}`, m, plHdrY); plHdrY += 4; }
+      if (settings.taxNumber) { plDoc.text(`TIN: ${settings.taxNumber}`, m, plHdrY); plHdrY += 4; }
+      y = Math.max(plHdrY + 2, y + 10);
+
       // Title
       plDoc.setFontSize(16);
       plDoc.setTextColor(25, 50, 150);
@@ -495,6 +510,21 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
 
     drawPageChrome();
     let yPos = 14;
+
+    // ── Company Header ──
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(25, 50, 80);
+    doc.text(settings.businessName || 'DigitalShop', margin, yPos);
+    let rptHdrY = yPos + 5;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    if (settings.businessAddress) { doc.text(settings.businessAddress, margin, rptHdrY); rptHdrY += 4; }
+    if (settings.businessPhone) { doc.text(`Tel: ${settings.businessPhone}`, margin, rptHdrY); rptHdrY += 4; }
+    if (settings.businessEmail) { doc.text(`Email: ${settings.businessEmail}`, margin, rptHdrY); rptHdrY += 4; }
+    if (settings.taxNumber) { doc.text(`TIN: ${settings.taxNumber}`, margin, rptHdrY); rptHdrY += 4; }
+    yPos = Math.max(rptHdrY + 2, yPos + 10);
 
     // ── Title Block ──
     doc.setFontSize(16);
