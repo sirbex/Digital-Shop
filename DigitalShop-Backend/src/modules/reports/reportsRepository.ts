@@ -1061,11 +1061,20 @@ export const reportsRepository = {
       WHERE status IN ('DRAFT', 'SENT', 'PARTIALLY_PAID', 'OVERDUE')
     `;
 
-    const [todayResult, monthResult, inventoryResult, receivablesResult] = await Promise.all([
+    const payablesQuery = `
+      SELECT 
+        COUNT(*) FILTER (WHERE s.balance > 0) as "suppliersOwed",
+        COALESCE(SUM(s.balance), 0) as "totalPayables"
+      FROM suppliers s
+      WHERE s.is_active = true
+    `;
+
+    const [todayResult, monthResult, inventoryResult, receivablesResult, payablesResult] = await Promise.all([
       pool.query(todayQuery),
       pool.query(monthQuery),
       pool.query(inventoryQuery),
       pool.query(receivablesQuery),
+      pool.query(payablesQuery),
     ]);
 
     return {
@@ -1073,6 +1082,7 @@ export const reportsRepository = {
       month: monthResult.rows[0],
       inventory: inventoryResult.rows[0],
       receivables: receivablesResult.rows[0],
+      payables: payablesResult.rows[0],
     };
   },
 

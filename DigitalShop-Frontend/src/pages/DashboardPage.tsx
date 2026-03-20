@@ -10,6 +10,7 @@ interface DashboardData {
   month: { monthSales: number; monthRevenue: number; monthProfit: number };
   inventory: { totalProducts: number; outOfStock: number; lowStock: number; inventoryValue: number };
   receivables: { unpaidInvoices: number; totalReceivables: number };
+  payables: { suppliersOwed: number; totalPayables: number };
 }
 
 export function DashboardPage() {
@@ -104,6 +105,7 @@ export function DashboardPage() {
   const month = dashboard?.month;
   const inv = dashboard?.inventory;
   const recv = dashboard?.receivables;
+  const pay = dashboard?.payables;
 
   // Trend sparkline max
   const trendMax = Math.max(...salesTrend.map((d: any) => parseFloat(d.totalSales || 0)), 1);
@@ -133,7 +135,7 @@ export function DashboardPage() {
       </div>
 
       {/* ── Hero KPI Cards Row ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         {/* Today's Revenue */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center gap-2 mb-3">
@@ -193,6 +195,18 @@ export function DashboardPage() {
           </div>
           <p className="text-xl sm:text-2xl font-bold text-orange-600">{fmt(recv?.totalReceivables)}</p>
           <p className="text-xs text-gray-500 mt-1">{recv?.unpaidInvoices || 0} unpaid invoices</p>
+        </div>
+
+        {/* Payables */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+              <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" /></svg>
+            </div>
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Payables</span>
+          </div>
+          <p className="text-xl sm:text-2xl font-bold text-red-600">{fmt(pay?.totalPayables)}</p>
+          <p className="text-xs text-gray-500 mt-1">{pay?.suppliersOwed || 0} suppliers owed</p>
         </div>
       </div>
 
