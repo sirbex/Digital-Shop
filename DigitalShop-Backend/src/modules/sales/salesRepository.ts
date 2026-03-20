@@ -667,13 +667,13 @@ export async function getSalesSummary(
       `;
       
       if (startDate) {
-        creditQuery += ` AND (s.sale_date >= $${creditParamIndex++} OR i.issue_date >= $${creditParamIndex++})`;
-        creditValues.push(startDate, startDate);
+        creditQuery += ` AND DATE(COALESCE(s.sale_date, i.issue_date)) >= $${creditParamIndex++}`;
+        creditValues.push(startDate);
       }
       
       if (endDate) {
-        creditQuery += ` AND (s.sale_date <= $${creditParamIndex++} OR i.issue_date <= $${creditParamIndex++})`;
-        creditValues.push(endDate, endDate);
+        creditQuery += ` AND DATE(COALESCE(s.sale_date, i.issue_date)) <= $${creditParamIndex++}`;
+        creditValues.push(endDate);
       }
     }
     

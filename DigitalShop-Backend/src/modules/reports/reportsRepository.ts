@@ -19,7 +19,10 @@ export const reportsRepository = {
         SUM(s.total_amount) as "totalAmount",
         SUM(s.total_cost) as "totalCost",
         SUM(s.profit) as "profit",
-        AVG(s.profit_margin) * 100 as "avgProfitMargin",
+        CASE WHEN SUM(s.subtotal - s.discount_amount) > 0
+          THEN (SUM(s.profit) / SUM(s.subtotal - s.discount_amount)) * 100
+          ELSE 0
+        END as "avgProfitMargin",
         SUM(CASE WHEN s.payment_method = 'CASH' THEN s.amount_paid ELSE 0 END) as "cashSales",
         SUM(CASE WHEN s.payment_method = 'CARD' THEN s.amount_paid ELSE 0 END) as "cardSales",
         SUM(CASE WHEN s.payment_method = 'MOBILE_MONEY' THEN s.amount_paid ELSE 0 END) as "mobileMoneySales",
@@ -128,8 +131,8 @@ export const reportsRepository = {
         SUM(s.total_amount) as "netSales",
         SUM(s.total_cost) as "costOfGoodsSold",
         SUM(s.profit) as "grossProfit",
-        CASE WHEN SUM(s.total_amount) > 0 
-          THEN (SUM(s.profit) / SUM(s.total_amount)) * 100 
+        CASE WHEN SUM(s.subtotal - s.discount_amount) > 0 
+          THEN (SUM(s.profit) / SUM(s.subtotal - s.discount_amount)) * 100 
           ELSE 0 
         END as "profitMarginPercent",
         AVG(s.total_amount) as "avgTransactionValue",
@@ -215,12 +218,14 @@ export const reportsRepository = {
         AND DATE(COALESCE(s.sale_date, i.issue_date)) <= $2
     `;
 
-    // Inventory value at period end
+    // Inventory value at period end (use batch-level costs for accuracy)
     const inventoryQuery = `
       SELECT 
-        SUM(p.quantity_on_hand * p.cost_price) as "inventoryValue"
-      FROM products p
-      WHERE p.is_active = true
+        COALESCE(SUM(ib.remaining_quantity * ib.cost_price), 0) as "inventoryValue"
+      FROM inventory_batches ib
+      JOIN products p ON ib.product_id = p.id
+      WHERE ib.status = 'ACTIVE'
+        AND p.is_active = true
     `;
 
     // ========================================================================
@@ -233,6 +238,7 @@ export const reportsRepository = {
       FROM expenses e
       WHERE DATE(e.expense_date) >= $1
         AND DATE(e.expense_date) <= $2
+        AND e.status = 'APPROVED'
     `;
 
     // Expense breakdown by category
@@ -244,6 +250,7 @@ export const reportsRepository = {
       FROM expenses e
       WHERE DATE(e.expense_date) >= $1
         AND DATE(e.expense_date) <= $2
+        AND e.status = 'APPROVED'
       GROUP BY e.category
       ORDER BY SUM(e.amount) DESC
     `;
@@ -266,17 +273,21 @@ export const reportsRepository = {
 
     const grossRevenue = parseFloat(revenue.grossRevenue) || 0;
     const discounts = parseFloat(revenue.discounts) || 0;
+    const taxCollected = parseFloat(revenue.taxCollected) || 0;
     const netRevenue = parseFloat(revenue.netRevenue) || 0;
     const costOfGoodsSold = parseFloat(cogs.costOfGoodsSold) || 0;
-    const grossProfit = netRevenue - costOfGoodsSold;
-    const grossProfitMargin = netRevenue > 0 ? (grossProfit / netRevenue) * 100 : 0;
+    // Gross Profit = (Revenue before tax) - COGS
+    // netRevenue includes tax, so subtract it for accurate profit calculation
+    const revenueBeforeTax = grossRevenue - discounts;
+    const grossProfit = revenueBeforeTax - costOfGoodsSold;
+    const grossProfitMargin = revenueBeforeTax > 0 ? (grossProfit / revenueBeforeTax) * 100 : 0;
 
     // Operating Expenses
     const totalOperatingExpenses = parseFloat(expenses.totalExpenses) || 0;
 
     // Net Profit = Gross Profit - Operating Expenses
     const netProfit = grossProfit - totalOperatingExpenses;
-    const netProfitMargin = netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0;
+    const netProfitMargin = revenueBeforeTax > 0 ? (netProfit / revenueBeforeTax) * 100 : 0;
 
     return {
       period: { startDate, endDate },
@@ -444,9 +455,20 @@ export const reportsRepository = {
         p.quantity_on_hand as "quantityOnHand",
         p.cost_price as "costPrice",
         p.selling_price as "sellingPrice",
-        (p.quantity_on_hand * p.cost_price) as "stockValueAtCost",
+        -- Use batch-level cost data when available for accurate valuation
+        COALESCE(
+          (SELECT SUM(ib.remaining_quantity * ib.cost_price)
+           FROM inventory_batches ib
+           WHERE ib.product_id = p.id AND ib.status = 'ACTIVE'),
+          p.quantity_on_hand * p.cost_price
+        ) as "stockValueAtCost",
         (p.quantity_on_hand * p.selling_price) as "stockValueAtRetail",
-        (p.quantity_on_hand * (p.selling_price - p.cost_price)) as "potentialProfit",
+        (p.quantity_on_hand * p.selling_price) - COALESCE(
+          (SELECT SUM(ib.remaining_quantity * ib.cost_price)
+           FROM inventory_batches ib
+           WHERE ib.product_id = p.id AND ib.status = 'ACTIVE'),
+          p.quantity_on_hand * p.cost_price
+        ) as "potentialProfit",
         CASE WHEN p.selling_price > 0 
           THEN ((p.selling_price - p.cost_price) / p.selling_price) * 100 
           ELSE 0 
@@ -978,7 +1000,11 @@ export const reportsRepository = {
         COUNT(*) as "totalProducts",
         COUNT(CASE WHEN quantity_on_hand = 0 THEN 1 END) as "outOfStock",
         COUNT(CASE WHEN quantity_on_hand > 0 AND quantity_on_hand <= reorder_level THEN 1 END) as "lowStock",
-        COALESCE(SUM(quantity_on_hand * cost_price), 0) as "inventoryValue"
+        (
+          SELECT COALESCE(SUM(ib.remaining_quantity * ib.cost_price), 0)
+          FROM inventory_batches ib
+          WHERE ib.status = 'ACTIVE'
+        ) as "inventoryValue"
       FROM products
       WHERE is_active = true
     `;
@@ -1045,7 +1071,10 @@ export const reportsRepository = {
         SUM(s.total_amount) as "totalSales",
         SUM(s.profit) as "totalProfit",
         AVG(s.total_amount) as "avgTransactionValue",
-        AVG(s.profit_margin) * 100 as "avgProfitMargin",
+        CASE WHEN SUM(s.subtotal - s.discount_amount) > 0
+          THEN (SUM(s.profit) / SUM(s.subtotal - s.discount_amount)) * 100
+          ELSE 0
+        END as "avgProfitMargin",
         SUM(CASE WHEN s.payment_method = 'CASH' THEN s.amount_paid ELSE 0 END) as "cashCollected",
         SUM(CASE WHEN s.payment_method = 'CARD' THEN s.amount_paid ELSE 0 END) as "cardCollected",
         SUM(CASE WHEN s.payment_method = 'MOBILE_MONEY' THEN s.amount_paid ELSE 0 END) as "mobileMoneyCollected",
@@ -1786,6 +1815,7 @@ export const reportsRepository = {
       FROM expenses e
       WHERE DATE(e.expense_date) >= $1
         AND DATE(e.expense_date) <= $2
+        AND e.status = 'APPROVED'
     `;
 
     const result = await pool.query(query, [filters.startDate, filters.endDate]);
@@ -1807,6 +1837,7 @@ export const reportsRepository = {
       FROM expenses e
       WHERE DATE(e.expense_date) >= $1
         AND DATE(e.expense_date) <= $2
+        AND e.status = 'APPROVED'
       GROUP BY e.category
       ORDER BY SUM(e.amount) DESC
     `;
@@ -1828,6 +1859,7 @@ export const reportsRepository = {
       FROM expenses e
       WHERE DATE(e.expense_date) >= $1
         AND DATE(e.expense_date) <= $2
+        AND e.status = 'APPROVED'
       GROUP BY DATE(e.expense_date)
       ORDER BY DATE(e.expense_date) DESC
     `;
@@ -1867,7 +1899,7 @@ export const reportsRepository = {
         AND DATE(ip.payment_date) <= $2
     `;
 
-    // Total expenses
+    // Total expenses (only APPROVED)
     const expensesQuery = `
       SELECT 
         COALESCE(SUM(e.amount), 0) as "totalExpenses",
@@ -1875,9 +1907,10 @@ export const reportsRepository = {
       FROM expenses e
       WHERE DATE(e.expense_date) >= $1
         AND DATE(e.expense_date) <= $2
+        AND e.status = 'APPROVED'
     `;
 
-    // Expenses by category
+    // Expenses by category (only APPROVED)
     const expensesByCategoryQuery = `
       SELECT 
         e.category,
@@ -1886,6 +1919,7 @@ export const reportsRepository = {
       FROM expenses e
       WHERE DATE(e.expense_date) >= $1
         AND DATE(e.expense_date) <= $2
+        AND e.status = 'APPROVED'
       GROUP BY e.category
       ORDER BY SUM(e.amount) DESC
     `;
@@ -1919,6 +1953,7 @@ export const reportsRepository = {
         FROM expenses e
         WHERE DATE(e.expense_date) >= $1
           AND DATE(e.expense_date) <= $2
+          AND e.status = 'APPROVED'
         GROUP BY DATE(e.expense_date)
       ),
       all_dates AS (
