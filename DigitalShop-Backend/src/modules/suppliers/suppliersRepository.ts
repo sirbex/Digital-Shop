@@ -428,7 +428,7 @@ export async function createSupplierPayment(
  */
 export async function getSupplierPayments(pool: Pool, supplierId: string): Promise<SupplierPaymentRow[]> {
   const query = `
-    SELECT sp.*, u.name as processed_by_name
+    SELECT sp.*, u.full_name as processed_by_name
     FROM supplier_payments sp
     LEFT JOIN users u ON sp.processed_by_id = u.id
     WHERE sp.supplier_id = $1

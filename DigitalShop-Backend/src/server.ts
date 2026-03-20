@@ -11,6 +11,7 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import { logger } from './utils/logger.js';
 import pool from './db/pool.js';
 
@@ -33,8 +34,11 @@ if (process.env.NODE_ENV === 'production') {
     app.set('trust proxy', 1);
 }
 
-// Security headers
-app.use(helmet());
+// Security headers - allow frontend assets when serving SPA
+app.use(helmet({
+    contentSecurityPolicy: false, // React app handles its own CSP via meta tags
+    crossOriginEmbedderPolicy: false, // Allow loading cross-origin resources (fonts, etc.)
+}));
 
 // Response compression (gzip/brotli)
 app.use(compression());
@@ -140,17 +144,33 @@ app.use('/api/quotations', quotationsRoutes);
 app.use('/api/pos/hold', holdRoutes);
 
 // ============================================================================
-// ERROR HANDLING
+// SERVE FRONTEND (Production)
 // ============================================================================
 
-// 404 handler
-app.use((req: Request, res: Response) => {
-    res.status(404).json({
-        success: false,
-        error: 'Route not found',
-        path: req.path,
+const frontendDistPath = path.resolve(__dirname, '../../DigitalShop-Frontend/dist');
+
+if (fs.existsSync(frontendDistPath)) {
+    // Serve static assets (JS, CSS, images)
+    app.use(express.static(frontendDistPath, { maxAge: '1y', immutable: true }));
+
+    // SPA fallback — any non-API route serves index.html (React Router handles it)
+    app.get('*', (_req: Request, res: Response) => {
+        res.sendFile(path.join(frontendDistPath, 'index.html'));
     });
-});
+
+    logger.info(`📦 Serving frontend from ${frontendDistPath}`);
+} else {
+    logger.info('⚠️  Frontend dist not found — API-only mode');
+
+    // 404 handler (API-only mode)
+    app.use((req: Request, res: Response) => {
+        res.status(404).json({
+            success: false,
+            error: 'Route not found',
+            path: req.path,
+        });
+    });
+}
 
 // Global error handler
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
