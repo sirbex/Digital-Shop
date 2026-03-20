@@ -1046,7 +1046,7 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
           <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg">
             <p className="text-xs sm:text-sm text-gray-600">Average Transaction</p>
             <p className="text-lg sm:text-xl font-bold text-yellow-600">
-              {formatCurrency(summary.transactionCount > 0 ? parseFloat(summary.totalAmount) / parseFloat(summary.transactionCount) : 0)}
+              {formatCurrency(summary.transactionCount > 0 ? (parseFloat(summary.totalAmount) || 0) / (parseFloat(summary.transactionCount) || 1) : 0)}
             </p>
           </div>
           {perms.canViewProfit && (
@@ -1087,10 +1087,10 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
                 <td className="px-2 sm:px-3 py-2 font-mono text-xs">{row.saleNumber}</td>
                 <td className="px-2 sm:px-3 py-2">{new Date(row.saleDate).toLocaleDateString()}</td>
                 <td className="px-3 py-2">{row.customerName || 'Walk-in'}</td>
-                <td className="px-3 py-2 text-right">{parseFloat(row.subtotal).toLocaleString()}</td>
-                <td className="px-3 py-2 text-right">{parseFloat(row.taxAmount).toLocaleString()}</td>
-                <td className="px-3 py-2 text-right font-medium">{parseFloat(row.totalAmount).toLocaleString()}</td>
-                {perms.canViewProfit && <td className="px-3 py-2 text-right text-green-600">{parseFloat(row.profit).toLocaleString()}</td>}
+                <td className="px-3 py-2 text-right">{(parseFloat(row.subtotal) || 0).toLocaleString()}</td>
+                <td className="px-3 py-2 text-right">{(parseFloat(row.taxAmount) || 0).toLocaleString()}</td>
+                <td className="px-3 py-2 text-right font-medium">{(parseFloat(row.totalAmount) || 0).toLocaleString()}</td>
+                {perms.canViewProfit && <td className="px-3 py-2 text-right text-green-600">{(parseFloat(row.profit) || 0).toLocaleString()}</td>}
                 <td className="px-3 py-2 text-center">
                   <span className={`px-2 py-1 rounded text-xs ${
                     row.paymentMethod === 'CASH' ? 'bg-green-100 text-green-800' :
@@ -1441,9 +1441,9 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
                 </td>
                 <td className="px-3 py-2 font-medium">{row.productName}</td>
                 <td className="px-3 py-2 text-gray-500">{row.sku}</td>
-                <td className="px-3 py-2 text-right">{parseFloat(row.totalQuantitySold).toLocaleString()}</td>
-                <td className="px-3 py-2 text-right font-medium">{parseFloat(row.totalRevenue).toLocaleString()}</td>
-                {perms.canViewProfit && <td className="px-3 py-2 text-right text-green-600">{parseFloat(row.totalProfit).toLocaleString()}</td>}
+                <td className="px-3 py-2 text-right">{(parseFloat(row.totalQuantitySold) || 0).toLocaleString()}</td>
+                <td className="px-3 py-2 text-right font-medium">{(parseFloat(row.totalRevenue) || 0).toLocaleString()}</td>
+                {perms.canViewProfit && <td className="px-3 py-2 text-right text-green-600">{(parseFloat(row.totalProfit) || 0).toLocaleString()}</td>}
                 {perms.canViewProfit && <td className="px-3 py-2 text-right">{formatPercent(row.avgProfitMargin)}</td>}
                 <td className="px-3 py-2 text-right">{row.transactionCount}</td>
               </tr>

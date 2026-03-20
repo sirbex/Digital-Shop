@@ -198,7 +198,7 @@ export async function generateReceiptNumber(pool: Pool): Promise<string> {
 
     year = result.rows[0].current_year;
     const lastNumber = result.rows[0].receipt_number;
-    const lastSequence = parseInt(lastNumber.split('-')[2]);
+    const lastSequence = parseInt(lastNumber.split('-')[2]) || 0;
     const nextSequence = (lastSequence + 1).toString().padStart(4, '0');
 
     return `RCP-${year}-${nextSequence}`;
@@ -332,7 +332,7 @@ async function generateInvoiceNumber(pool: Pool): Promise<string> {
 
     year = result.rows[0].current_year;
     const lastNumber = result.rows[0].invoice_number;
-    const lastSequence = parseInt(lastNumber.split('-')[2]);
+    const lastSequence = parseInt(lastNumber.split('-')[2]) || 0;
     const nextSequence = (lastSequence + 1).toString().padStart(4, '0');
 
     return `INV-${year}-${nextSequence}`;

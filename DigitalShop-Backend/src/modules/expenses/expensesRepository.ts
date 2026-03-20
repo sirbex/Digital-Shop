@@ -306,10 +306,10 @@ export const expensesRepository = {
     let query = `
       SELECT 
         COUNT(*) as total_count,
-        SUM(amount) as total_amount,
-        AVG(amount) as avg_amount,
-        MIN(amount) as min_amount,
-        MAX(amount) as max_amount
+        COALESCE(SUM(amount), 0) as total_amount,
+        COALESCE(AVG(amount), 0) as avg_amount,
+        COALESCE(MIN(amount), 0) as min_amount,
+        COALESCE(MAX(amount), 0) as max_amount
       FROM expenses
       WHERE status = 'APPROVED'
     `;

@@ -411,6 +411,8 @@ BEGIN
     ELSE
         v_profit_margin := 0;
     END IF;
+    -- Clamp to constraint range to prevent CHECK violation
+    v_profit_margin := GREATEST(-1, LEAST(10, v_profit_margin));
     
     -- Update sale record (preserve discount_amount if it includes cart discount)
     UPDATE sales

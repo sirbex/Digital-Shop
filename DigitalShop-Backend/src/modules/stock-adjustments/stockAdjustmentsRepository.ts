@@ -195,7 +195,7 @@ export async function generateAdjustmentNumber(): Promise<string> {
 
   const lastNumber = result.rows[0].movement_number;
   const year = result.rows[0].current_year;
-  const sequence = parseInt(lastNumber.split('-')[2]) + 1;
+  const sequence = (parseInt(lastNumber.split('-')[2]) || 0) + 1;
   return `ADJ-${year}-${sequence.toString().padStart(4, '0')}`;
 }
 

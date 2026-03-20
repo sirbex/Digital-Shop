@@ -224,7 +224,7 @@ export async function generatePONumber(pool: Pool): Promise<string> {
 
     year = result.rows[0].current_year;
     const lastNumber = result.rows[0].order_number;
-    const lastSequence = parseInt(lastNumber.split('-')[2]);
+    const lastSequence = parseInt(lastNumber.split('-')[2]) || 0;
     const nextSequence = (lastSequence + 1).toString().padStart(4, '0');
 
     return `PO-${year}-${nextSequence}`;

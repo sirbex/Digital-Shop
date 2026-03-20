@@ -1,4 +1,5 @@
 import pool from '../../db/pool.js';
+import Decimal from 'decimal.js';
 
 export const reportsRepository = {
   // ==========================================================================
@@ -125,22 +126,22 @@ export const reportsRepository = {
     const query = `
       SELECT 
         COUNT(*) as "totalTransactions",
-        SUM(s.subtotal) as "grossSales",
-        SUM(s.tax_amount) as "totalTax",
-        SUM(s.discount_amount) as "totalDiscount",
-        SUM(s.total_amount) as "netSales",
-        SUM(s.total_cost) as "costOfGoodsSold",
-        SUM(s.profit) as "grossProfit",
+        COALESCE(SUM(s.subtotal), 0) as "grossSales",
+        COALESCE(SUM(s.tax_amount), 0) as "totalTax",
+        COALESCE(SUM(s.discount_amount), 0) as "totalDiscount",
+        COALESCE(SUM(s.total_amount), 0) as "netSales",
+        COALESCE(SUM(s.total_cost), 0) as "costOfGoodsSold",
+        COALESCE(SUM(s.profit), 0) as "grossProfit",
         CASE WHEN SUM(s.subtotal - s.discount_amount) > 0 
           THEN (SUM(s.profit) / SUM(s.subtotal - s.discount_amount)) * 100 
           ELSE 0 
         END as "profitMarginPercent",
-        AVG(s.total_amount) as "avgTransactionValue",
-        MAX(s.total_amount) as "largestTransaction",
-        MIN(s.total_amount) as "smallestTransaction",
-        SUM(s.amount_paid) as "totalCollected",
+        COALESCE(AVG(s.total_amount), 0) as "avgTransactionValue",
+        COALESCE(MAX(s.total_amount), 0) as "largestTransaction",
+        COALESCE(MIN(s.total_amount), 0) as "smallestTransaction",
+        COALESCE(SUM(s.amount_paid), 0) as "totalCollected",
         -- Payment method breakdown
-        SUM(CASE WHEN s.payment_method = 'CASH' THEN s.amount_paid ELSE 0 END) as "cashCollected",
+        SUM(CASE WHEN s.payment_method = 'CASH' THEN s.amount_paid - COALESCE(s.change_amount, 0) - COALESCE(s.change_amount, 0) ELSE 0 END) as "cashCollected",
         SUM(CASE WHEN s.payment_method = 'CARD' THEN s.amount_paid ELSE 0 END) as "cardCollected",
         SUM(CASE WHEN s.payment_method = 'MOBILE_MONEY' THEN s.amount_paid ELSE 0 END) as "mobileMoneyCollected",
         COUNT(CASE WHEN s.payment_method = 'CASH' THEN 1 END) as "cashCount",
@@ -312,16 +313,17 @@ export const reportsRepository = {
     const costOfGoodsSold = parseFloat(cogs.costOfGoodsSold) || 0;
     // Gross Profit = (Revenue before tax) - COGS
     // netRevenue includes tax, so subtract it for accurate profit calculation
-    const revenueBeforeTax = grossRevenue - discounts;
-    const grossProfit = revenueBeforeTax - costOfGoodsSold;
-    const grossProfitMargin = revenueBeforeTax > 0 ? (grossProfit / revenueBeforeTax) * 100 : 0;
+    const revenueBeforeTax = new Decimal(grossRevenue).minus(discounts);
+    const grossProfitDec = revenueBeforeTax.minus(costOfGoodsSold);
+    const grossProfitMargin = revenueBeforeTax.greaterThan(0) ? grossProfitDec.div(revenueBeforeTax).times(100).toNumber() : 0;
+    const grossProfit = grossProfitDec.toNumber();
 
     // Operating Expenses
     const totalOperatingExpenses = parseFloat(expenses.totalExpenses) || 0;
 
     // Net Profit = Gross Profit - Operating Expenses
-    const netProfit = grossProfit - totalOperatingExpenses;
-    const netProfitMargin = revenueBeforeTax > 0 ? (netProfit / revenueBeforeTax) * 100 : 0;
+    const netProfit = grossProfitDec.minus(totalOperatingExpenses).toNumber();
+    const netProfitMargin = revenueBeforeTax.greaterThan(0) ? new Decimal(netProfit).div(revenueBeforeTax).times(100).toNumber() : 0;
 
     return {
       period: { startDate, endDate },
@@ -539,10 +541,10 @@ export const reportsRepository = {
     // Calculate totals - use property names frontend expects
     const totals = result.rows.reduce((acc, row) => ({
       totalProducts: acc.totalProducts + 1,
-      totalQuantity: acc.totalQuantity + parseFloat(row.quantityOnHand),
-      totalValueAtCost: acc.totalValueAtCost + parseFloat(row.stockValueAtCost),
-      totalValueAtRetail: acc.totalValueAtRetail + parseFloat(row.stockValueAtRetail),
-      totalPotentialProfit: acc.totalPotentialProfit + parseFloat(row.potentialProfit),
+      totalQuantity: new Decimal(acc.totalQuantity).plus(parseFloat(row.quantityOnHand) || 0).toNumber(),
+      totalValueAtCost: new Decimal(acc.totalValueAtCost).plus(parseFloat(row.stockValueAtCost) || 0).toNumber(),
+      totalValueAtRetail: new Decimal(acc.totalValueAtRetail).plus(parseFloat(row.stockValueAtRetail) || 0).toNumber(),
+      totalPotentialProfit: new Decimal(acc.totalPotentialProfit).plus(parseFloat(row.potentialProfit) || 0).toNumber(),
     }), { totalProducts: 0, totalQuantity: 0, totalValueAtCost: 0, totalValueAtRetail: 0, totalPotentialProfit: 0 });
 
     // Transform items to match frontend expected field names
@@ -1755,7 +1757,7 @@ export const reportsRepository = {
     const query = `
       SELECT 
         COUNT(*) as "totalPayments",
-        SUM(ip.amount) as "totalAmountCollected",
+        COALESCE(SUM(ip.amount), 0) as "totalAmountCollected",
         COUNT(DISTINCT i.customer_id) as "uniqueCustomers",
         SUM(CASE WHEN ip.payment_method = 'CASH' THEN ip.amount ELSE 0 END) as "cashCollected",
         SUM(CASE WHEN ip.payment_method = 'CARD' THEN ip.amount ELSE 0 END) as "cardCollected",
@@ -1765,9 +1767,9 @@ export const reportsRepository = {
         COUNT(CASE WHEN ip.payment_method = 'CARD' THEN 1 END) as "cardPaymentCount",
         COUNT(CASE WHEN ip.payment_method = 'MOBILE_MONEY' THEN 1 END) as "mobileMoneyPaymentCount",
         COUNT(CASE WHEN ip.payment_method = 'BANK_TRANSFER' THEN 1 END) as "bankTransferPaymentCount",
-        AVG(ip.amount) as "avgPaymentAmount",
-        MAX(ip.amount) as "largestPayment",
-        MIN(ip.amount) as "smallestPayment"
+        COALESCE(AVG(ip.amount), 0) as "avgPaymentAmount",
+        COALESCE(MAX(ip.amount), 0) as "largestPayment",
+        COALESCE(MIN(ip.amount), 0) as "smallestPayment"
       FROM invoice_payments ip
       JOIN invoices i ON ip.invoice_id = i.id
       WHERE DATE(ip.payment_date) >= $1
@@ -1858,10 +1860,10 @@ export const reportsRepository = {
     const query = `
       SELECT 
         COUNT(*) as "totalExpenses",
-        SUM(e.amount) as "totalAmount",
-        AVG(e.amount) as "avgExpenseAmount",
-        MAX(e.amount) as "largestExpense",
-        MIN(e.amount) as "smallestExpense",
+        COALESCE(SUM(e.amount), 0) as "totalAmount",
+        COALESCE(AVG(e.amount), 0) as "avgExpenseAmount",
+        COALESCE(MAX(e.amount), 0) as "largestExpense",
+        COALESCE(MIN(e.amount), 0) as "smallestExpense",
         SUM(CASE WHEN e.payment_method = 'CASH' THEN e.amount ELSE 0 END) as "cashExpenses",
         SUM(CASE WHEN e.payment_method = 'CARD' THEN e.amount ELSE 0 END) as "cardExpenses",
         SUM(CASE WHEN e.payment_method = 'MOBILE_MONEY' THEN e.amount ELSE 0 END) as "mobileMoneyExpenses",
@@ -2078,7 +2080,7 @@ export const reportsRepository = {
         COALESCE(dc.collections_income, 0) as "collectionsIncome",
         COALESCE(de.total_expenses, 0) as "totalExpenses",
         COALESCE(dsp.supplier_payments, 0) as "supplierPayments",
-        COALESCE(ds.gross_profit, 0) - COALESCE(de.total_expenses, 0) - COALESCE(dsp.supplier_payments, 0) as "netProfit"
+        COALESCE(ds.gross_profit, 0) - COALESCE(de.total_expenses, 0) as "netProfit"
       FROM all_dates d
       LEFT JOIN daily_sales ds ON d.date = ds.date
       LEFT JOIN daily_collections dc ON d.date = dc.date

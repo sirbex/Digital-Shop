@@ -238,7 +238,7 @@ export async function updateBatchQuantity(
 ): Promise<void> {
   const query = `
     UPDATE inventory_batches
-    SET remaining_quantity = remaining_quantity + $1,
+    SET remaining_quantity = GREATEST(0, remaining_quantity + $1),
         status = CASE 
           WHEN remaining_quantity + $1 <= 0 THEN 'DEPLETED'
           ELSE status

@@ -280,9 +280,9 @@ export function DashboardPage() {
             {(inv?.totalProducts || 0) > 0 && (
               <div className="mt-3">
                 <div className="w-full h-3 rounded-full bg-gray-100 overflow-hidden flex">
-                  <div className="bg-green-400 h-full transition-all" style={{ width: `${Math.max(0, ((inv!.totalProducts - inv!.outOfStock - inv!.lowStock) / inv!.totalProducts) * 100)}%` }} />
-                  <div className="bg-amber-400 h-full transition-all" style={{ width: `${(inv!.lowStock / inv!.totalProducts) * 100}%` }} />
-                  <div className="bg-red-400 h-full transition-all" style={{ width: `${(inv!.outOfStock / inv!.totalProducts) * 100}%` }} />
+                  <div className="bg-green-400 h-full transition-all" style={{ width: `${Math.max(0, (((inv?.totalProducts || 0) - (inv?.outOfStock || 0) - (inv?.lowStock || 0)) / (inv?.totalProducts || 1)) * 100)}%` }} />
+                  <div className="bg-amber-400 h-full transition-all" style={{ width: `${((inv?.lowStock || 0) / (inv?.totalProducts || 1)) * 100}%` }} />
+                  <div className="bg-red-400 h-full transition-all" style={{ width: `${((inv?.outOfStock || 0) / (inv?.totalProducts || 1)) * 100}%` }} />
                 </div>
                 <p className="text-[10px] text-gray-400 mt-1.5 text-center">{inv!.totalProducts} products total</p>
               </div>

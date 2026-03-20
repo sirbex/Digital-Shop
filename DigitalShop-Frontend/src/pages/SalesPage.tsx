@@ -192,7 +192,7 @@ function SaleDetailsModal({ sale, onClose, onPrint, showProfit = true }: { sale:
                   <tbody className="divide-y divide-gray-200">
                     {sale.items?.map((item: any, index: number) => {
                       const itemDiscount = parseFloat(item.discountAmount || 0);
-                      const itemSubtotal = item.quantity * parseFloat(item.unitPrice);
+                      const itemSubtotal = item.quantity * (parseFloat(item.unitPrice) || 0);
                       const itemTotal = item.totalAmount || item.total_price || (itemSubtotal - itemDiscount);
                       return (
                         <tr key={item.id || index} className="hover:bg-gray-50">
@@ -209,7 +209,7 @@ function SaleDetailsModal({ sale, onClose, onPrint, showProfit = true }: { sale:
                             {item.sku && item.itemType !== 'SERVICE' && item.itemType !== 'CUSTOM' && <div className="text-xs text-gray-500">SKU: {item.sku}</div>}
                           </td>
                           <td className="px-4 py-3 text-right">{item.quantity}</td>
-                          <td className="px-4 py-3 text-right">{cs} {parseFloat(item.unitPrice).toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right">{cs} {(parseFloat(item.unitPrice) || 0).toLocaleString()}</td>
                           {hasAnyDiscount && (
                             <td className="px-4 py-3 text-right text-red-600">
                               {itemDiscount > 0 ? `- ${cs} ${itemDiscount.toLocaleString()}` : '-'}
@@ -781,7 +781,7 @@ export function SalesPage() {
                     {/* Show partial payment indicator */}
                     {parseFloat(sale.amountPaid || sale.totalAmount) < parseFloat(sale.totalAmount) - 0.01 && (
                       <div className="text-xs text-orange-600 font-medium">
-                        ⚠️ Paid: {cs} {parseFloat(sale.amountPaid).toLocaleString()}
+                        ⚠️ Paid: {cs} {(parseFloat(sale.amountPaid) || 0).toLocaleString()}
                       </div>
                     )}
                   </td>

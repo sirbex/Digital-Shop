@@ -102,7 +102,7 @@ function toSale(row: salesRepository.SaleRow): Sale {
     totalCost: parseFloat(row.total_cost),
     profit: parseFloat(row.profit),
     // Convert profit_margin from decimal (0.25) to percentage (25) for consistent frontend display
-    profitMargin: row.profit_margin ? parseFloat(row.profit_margin) * 100 : null,
+    profitMargin: row.profit_margin ? new Decimal(row.profit_margin).times(100).toNumber() : null,
     paymentMethod: row.payment_method as any,
     amountPaid: parseFloat(row.amount_paid),
     changeAmount: parseFloat(row.change_amount),
@@ -123,7 +123,7 @@ function toSaleItem(row: salesRepository.SaleItemRow): SaleItem {
   const discountAmount = parseFloat(row.discount_amount || '0');
   const totalPrice = parseFloat(row.total_price);
   // Calculate subtotal from total + discount (since we don't store subtotal separately)
-  const subtotal = totalPrice + discountAmount;
+  const subtotal = new Decimal(totalPrice).plus(discountAmount).toNumber();
   
   return {
     id: row.id,
@@ -432,7 +432,7 @@ export async function createSale(pool: Pool, data: CreateSaleData): Promise<stri
   // Calculate totals
   // Cart-level discount = total discount from frontend - sum of item-level discounts
   // This ensures cart-wide discounts (not distributed to items) are included in profit calc
-  const itemLevelDiscountTotal = enrichedItems.reduce((sum, item) => sum + (item.discountAmount || 0), 0);
+  const itemLevelDiscountTotal = enrichedItems.reduce((sum, item) => new Decimal(sum).plus(item.discountAmount || 0).toNumber(), 0);
   const frontendTotalDiscount = data.discountAmount || 0;
   const cartDiscount = Math.max(0, frontendTotalDiscount - itemLevelDiscountTotal);
   

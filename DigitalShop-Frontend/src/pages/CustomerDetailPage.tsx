@@ -613,10 +613,10 @@ export default function CustomerDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(customer.creditLimit)}
+              {formatCurrency(customer.creditLimit || 0)}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Available: {formatCurrency(Math.max(0, customer.creditLimit - Math.abs(customer.balance)))}
+              Available: {formatCurrency(Math.max(0, (customer.creditLimit || 0) - Math.abs(customer.balance || 0)))}
             </p>
           </CardContent>
         </Card>

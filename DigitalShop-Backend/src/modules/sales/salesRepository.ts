@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import Decimal from 'decimal.js';
 import { logger } from '../../utils/logger.js';
 
 export interface SaleRow {
@@ -251,7 +252,7 @@ export async function generateSaleNumber(pool: Pool): Promise<string> {
 
     year = result.rows[0].current_year;
     const lastNumber = result.rows[0].sale_number;
-    const lastSequence = parseInt(lastNumber.split('-')[2]);
+    const lastSequence = parseInt(lastNumber.split('-')[2]) || 0;
     const nextSequence = (lastSequence + 1).toString().padStart(4, '0');
 
     return `SALE-${year}-${nextSequence}`;
@@ -452,7 +453,7 @@ export async function createSale(
     // - Partial payment (400k CASH on 1M): Creates invoice for 600k balance
     // - Full payment: No invoice needed (balance = 0)
     // ===================================================================
-    const unpaidBalance = saleData.totalAmount - (saleData.amountPaid || 0);
+    const unpaidBalance = new Decimal(saleData.totalAmount).minus(saleData.amountPaid || 0).toNumber();
     if (saleData.customerId && unpaidBalance > 0.01) {
       // Generate invoice number (INV-YYYY-####)
       const invoiceNumberQuery = `
@@ -475,7 +476,7 @@ export async function createSale(
       } else {
         const year = invoiceNumResult.rows[0].current_year;
         const lastNumber = invoiceNumResult.rows[0].invoice_number;
-        const lastSequence = parseInt(lastNumber.split('-')[2]);
+        const lastSequence = parseInt(lastNumber.split('-')[2]) || 0;
         const nextSequence = (lastSequence + 1).toString().padStart(4, '0');
         invoiceNumber = `INV-${year}-${nextSequence}`;
       }
@@ -493,7 +494,7 @@ export async function createSale(
       
       const issueDate = saleData.saleDate || new Date().toISOString();
       const dueDate = new Date(new Date(issueDate).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days from sale
-      const unpaidAmount = saleData.totalAmount - (saleData.amountPaid || 0);
+      const unpaidAmount = new Decimal(saleData.totalAmount).minus(saleData.amountPaid || 0).toNumber();
       // CRITICAL FIX: Use correct enum values (DRAFT for new unpaid invoices, not UNPAID)
       // Valid enum: DRAFT, SENT, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED
       const invoiceStatus = unpaidAmount > 0 ? (saleData.amountPaid > 0 ? 'PARTIALLY_PAID' : 'DRAFT') : 'PAID';
@@ -551,7 +552,7 @@ export async function createSale(
         } else {
           const year = receiptNumResult.rows[0].current_year;
           const lastNumber = receiptNumResult.rows[0].receipt_number;
-          const lastSequence = parseInt(lastNumber.split('-')[2]);
+          const lastSequence = parseInt(lastNumber.split('-')[2]) || 0;
           const nextSequence = (lastSequence + 1).toString().padStart(4, '0');
           receiptNumber = `RCP-${year}-${nextSequence}`;
         }

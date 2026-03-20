@@ -909,7 +909,7 @@ export function InventoryPage() {
                 <td>${item.sku || '-'}</td>
                 <td class="text-right">${item.orderedQuantity}</td>
                 <td class="text-right">${cs} ${Number(item.unitPrice || 0).toLocaleString()}</td>
-                <td class="text-right">${cs} ${(item.orderedQuantity * item.unitPrice).toLocaleString()}</td>
+                <td class="text-right">${cs} ${(Number(item.orderedQuantity || 0) * Number(item.unitPrice || 0)).toLocaleString()}</td>
               </tr>
             `).join('')}
             <tr class="total-row">
