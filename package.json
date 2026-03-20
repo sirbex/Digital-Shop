@@ -10,11 +10,13 @@
   "scripts": {
     "install:shared": "cd DigitalShop-Shared && npm install",
     "install:backend": "cd DigitalShop-Backend && npm install",
-    "install:all": "npm run install:shared && npm run install:backend",
+    "install:frontend": "cd DigitalShop-Frontend && npm install",
+    "install:all": "npm run install:shared && npm run install:frontend && npm run install:backend",
     "build:shared": "cd DigitalShop-Shared && npx tsc",
+    "build:frontend": "cd DigitalShop-Frontend && npx vite build",
     "build:backend": "cd DigitalShop-Backend && npx tsc",
-    "build": "npm run build:shared && npm run build:backend",
+    "build": "npm run build:shared && npm run build:frontend && npm run build:backend",
     "start": "cd DigitalShop-Backend && node dist/server.js",
-    "postinstall": "npm run install:shared && npm run install:backend"
+    "postinstall": "npm run install:shared && npm run install:frontend && npm run install:backend"
   }
 }
