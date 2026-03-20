@@ -7,6 +7,9 @@ FROM node:18-alpine AS build
 
 WORKDIR /app
 
+# Install build tools needed for native modules (bcrypt)
+RUN apk add --no-cache python3 make g++
+
 # Copy everything
 COPY . .
 
