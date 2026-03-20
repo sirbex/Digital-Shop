@@ -203,9 +203,9 @@ export function SuppliersPage() {
     }
   };
 
-  // Handle delete
+  // Handle deactivate
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Delete supplier "${name}"? This action cannot be undone.`)) return;
+    if (!confirm(`Deactivate supplier "${name}"? You can reactivate them later.`)) return;
     try {
       const response = await suppliersApi.update(id, { isActive: false });
       if (response.data.success) {
@@ -216,6 +216,22 @@ export function SuppliersPage() {
       }
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to deactivate supplier');
+    }
+  };
+
+  // Handle reactivate
+  const handleReactivate = async (id: string, name: string) => {
+    if (!confirm(`Reactivate supplier "${name}"?`)) return;
+    try {
+      const response = await suppliersApi.update(id, { isActive: true });
+      if (response.data.success) {
+        alert('Supplier reactivated successfully!');
+        loadSuppliers();
+      } else {
+        alert(response.data.error || 'Failed to reactivate supplier');
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to reactivate supplier');
     }
   };
 
@@ -560,6 +576,15 @@ export function SuppliersPage() {
                               🗑️
                             </button>
                           )}
+                          {perms.canDeleteSupplier && !supplier.isActive && (
+                            <button
+                              onClick={() => handleReactivate(supplier.id, supplier.name)}
+                              className="text-green-600 hover:text-green-900"
+                              title="Reactivate"
+                            >
+                              ♻️
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -669,6 +694,14 @@ export function SuppliersPage() {
                       className="px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
                     >
                       🗑️
+                    </button>
+                  )}
+                  {perms.canDeleteSupplier && !supplier.isActive && (
+                    <button
+                      onClick={() => handleReactivate(supplier.id, supplier.name)}
+                      className="px-3 py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
+                    >
+                      ♻️ Activate
                     </button>
                   )}
                 </div>
@@ -1107,7 +1140,7 @@ function SupplierDetailModal({ supplier, onClose, onEdit, onPay }: SupplierDetai
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">Status</label>
-                    <div className="mt-1">
+                    <div className="mt-1 flex items-center gap-2">
                       <span
                         className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
                           supplier.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
@@ -1115,6 +1148,24 @@ function SupplierDetailModal({ supplier, onClose, onEdit, onPay }: SupplierDetai
                       >
                         {supplier.isActive ? '✓ Active' : '○ Inactive'}
                       </span>
+                      {modalPerms.canDeleteSupplier && !supplier.isActive && (
+                        <button
+                          onClick={() => {
+                            if (!confirm(`Reactivate supplier "${supplier.name}"?`)) return;
+                            suppliersApi.update(supplier.id, { isActive: true }).then((res) => {
+                              if (res.data.success) {
+                                alert('Supplier reactivated!');
+                                onClose();
+                              } else {
+                                alert(res.data.error || 'Failed to reactivate');
+                              }
+                            }).catch(() => alert('Failed to reactivate'));
+                          }}
+                          className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-full hover:bg-green-200 font-medium"
+                        >
+                          ♻️ Reactivate
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div>
