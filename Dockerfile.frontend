@@ -1,30 +1,26 @@
-# DigitalShop Unified Deployment
-# Backend serves API + Frontend static files
-FROM node:18
+# DigitalShop Frontend — static SPA served by 'serve'
+# API URL injected at build time via VITE_API_URL build arg
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Copy all source files
-COPY . .
-
-# Install ALL dependencies (including devDependencies needed for build)
-ENV NODE_ENV=development
+# Copy shared package first (frontend depends on it)
+COPY DigitalShop-Shared ./DigitalShop-Shared
 RUN cd DigitalShop-Shared && npm install
+
+# Copy frontend and install
+COPY DigitalShop-Frontend ./DigitalShop-Frontend
 RUN cd DigitalShop-Frontend && npm install
-RUN cd DigitalShop-Backend && npm install
 
-# Build in order: Shared types -> Frontend -> Backend
-RUN cd DigitalShop-Shared && npx tsc
+# Build frontend (VITE_API_URL is set via Railway env vars at build time)
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 RUN cd DigitalShop-Frontend && npx vite build
-RUN cd DigitalShop-Backend && npx tsc
 
-# Switch to production and prune dev dependencies
-ENV NODE_ENV=production
-RUN cd DigitalShop-Backend && npm prune --production
-
-# Clean up source and frontend deps (no longer needed at runtime)
-RUN rm -rf DigitalShop-Frontend/node_modules DigitalShop-Frontend/src \
-    DigitalShop-Shared/node_modules DigitalShop-Shared/types \
-    DigitalShop-Backend/src
-
-CMD ["node", "DigitalShop-Backend/dist/server.js"]
+# Production stage - serve with lightweight static server
+FROM node:20-alpine
+RUN npm install -g serve
+WORKDIR /app
+COPY --from=build /app/DigitalShop-Frontend/dist ./dist
+EXPOSE 3000
+CMD ["serve", "dist", "-s", "-l", "3000"]
