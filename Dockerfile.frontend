@@ -32,6 +32,9 @@ RUN cd DigitalShop-Backend && npx tsc
 # ============================================================================
 FROM node:18-alpine
 
+# Runtime libs for native modules (bcrypt)
+RUN apk add --no-cache libstdc++
+
 WORKDIR /app
 
 # Copy built artifacts and dependencies
