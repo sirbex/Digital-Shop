@@ -36,6 +36,9 @@ import {
 } from 'lucide-react';
 import Decimal from 'decimal.js';
 
+const CART_STORAGE_KEY = 'pos_draft_cart';
+const CART_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 // Line item type matching SamplePOS
 interface LineItem {
   id: string;
@@ -119,6 +122,50 @@ export function POSPage() {
   const [lastSale, setLastSale] = useState<any>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [cartRestored, setCartRestored] = useState(false);
+
+  // Restore cart from localStorage on mount (survives refresh/crash)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CART_STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (!saved || !saved.savedAt) return;
+      // Discard if older than 24 hours
+      if (Date.now() - saved.savedAt > CART_MAX_AGE_MS) {
+        localStorage.removeItem(CART_STORAGE_KEY);
+        return;
+      }
+      if (saved.items?.length > 0) {
+        setItems(saved.items);
+        setSelectedCustomer(saved.selectedCustomer ?? null);
+        setCartDiscount(saved.cartDiscount ?? null);
+        setNotes(saved.notes ?? '');
+        setCartRestored(true);
+      }
+    } catch {
+      localStorage.removeItem(CART_STORAGE_KEY);
+    }
+  }, []);
+
+  // Persist cart to localStorage on every change
+  useEffect(() => {
+    if (items.length === 0) {
+      localStorage.removeItem(CART_STORAGE_KEY);
+      return;
+    }
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify({
+        items,
+        selectedCustomer,
+        cartDiscount,
+        notes,
+        savedAt: Date.now(),
+      }));
+    } catch {
+      // Storage full or unavailable — non-critical
+    }
+  }, [items, selectedCustomer, cartDiscount, notes]);
 
   // Calculate totals using Decimal.js for precision
   const calculateTotals = useCallback(() => {
@@ -308,6 +355,8 @@ export function POSPage() {
     setShowDatePicker(false);
     setError('');
     setSuccess('');
+    setCartRestored(false);
+    localStorage.removeItem(CART_STORAGE_KEY);
     productSearchRef.current?.focusSearch();
   };
 
@@ -979,6 +1028,12 @@ export function POSPage() {
         <div className="mx-4 mt-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 flex items-center justify-between">
           <span>{success}</span>
           <button onClick={() => setSuccess('')} title="Dismiss" aria-label="Dismiss success message"><X className="w-4 h-4" /></button>
+        </div>
+      )}
+      {cartRestored && (
+        <div className="mx-4 mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 flex items-center justify-between">
+          <span>Cart restored from previous session.</span>
+          <button onClick={() => setCartRestored(false)} title="Dismiss" aria-label="Dismiss restored notice"><X className="w-4 h-4" /></button>
         </div>
       )}
 

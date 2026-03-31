@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool, PoolClient } from 'pg';
 import Decimal from 'decimal.js';
 import { logger } from '../../utils/logger.js';
 
@@ -227,8 +227,9 @@ export async function getSaleItems(pool: Pool, saleId: string): Promise<SaleItem
 /**
  * Generate next sale number
  */
-export async function generateSaleNumber(pool: Pool): Promise<string> {
+export async function generateSaleNumber(client: Pool | PoolClient): Promise<string> {
   // Use SQL to get year instead of JavaScript Date object (timezone compliant)
+  // FOR UPDATE locks the scanned rows to prevent concurrent duplicate generation
   const query = `
     SELECT 
       sale_number,
@@ -237,15 +238,16 @@ export async function generateSaleNumber(pool: Pool): Promise<string> {
     WHERE sale_number LIKE 'SALE-' || TO_CHAR(CURRENT_DATE, 'YYYY') || '-%'
     ORDER BY sale_number DESC 
     LIMIT 1
+    FOR UPDATE
   `;
 
   try {
-    const result = await pool.query(query);
+    const result = await client.query(query);
     
     // Get current year from query result or fallback to SQL
     let year: number;
     if (result.rows.length === 0) {
-      const yearResult = await pool.query('SELECT EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER as year');
+      const yearResult = await client.query('SELECT EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER as year');
       year = yearResult.rows[0].year;
       return `SALE-${year}-0001`;
     }
@@ -275,8 +277,8 @@ export async function createSale(
   try {
     await client.query('BEGIN');
 
-    // Generate sale number
-    const saleNumber = await generateSaleNumber(pool);
+    // Generate sale number inside transaction for concurrency safety
+    const saleNumber = await generateSaleNumber(client);
 
     // Create sale
     const saleQuery = `
