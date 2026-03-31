@@ -2312,8 +2312,8 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
               </div>
               <div className="h-8 bg-gray-200 rounded-full overflow-hidden">
                 <div 
+                  ref={(el) => { if (el) el.style.width = `${Math.min(100, (grossProfit / Math.max(grossProfit, totalExpenses, 1)) * 100)}%`; }}
                   className="h-full bg-green-500 rounded-full flex items-center justify-end pr-2"
-                  style={{ width: `${Math.min(100, (grossProfit / Math.max(grossProfit, totalExpenses, 1)) * 100)}%` }}
                 >
                   <span className="text-xs text-white font-medium">Income</span>
                 </div>
@@ -2326,8 +2326,8 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
               </div>
               <div className="h-8 bg-gray-200 rounded-full overflow-hidden">
                 <div 
+                  ref={(el) => { if (el) el.style.width = `${Math.min(100, (totalExpenses / Math.max(grossProfit, totalExpenses, 1)) * 100)}%`; }}
                   className="h-full bg-red-500 rounded-full flex items-center justify-end pr-2"
-                  style={{ width: `${Math.min(100, (totalExpenses / Math.max(grossProfit, totalExpenses, 1)) * 100)}%` }}
                 >
                   <span className="text-xs text-white font-medium">Expenses</span>
                 </div>

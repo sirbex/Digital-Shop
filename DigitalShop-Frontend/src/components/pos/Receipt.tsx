@@ -1,8 +1,7 @@
-// Inline styles are intentional for thermal receipt printing compatibility
-// External CSS doesn't reliably render in print contexts (required for thermal printers)
 import { forwardRef } from 'react';
 import Decimal from 'decimal.js';
 import { useSettings } from '../../contexts/SettingsContext';
+import '../../styles/receipt.css';
 
 /**
  * Professional Receipt Component
@@ -127,34 +126,17 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
     return (
       <div
         ref={ref}
-        className="receipt-container bg-white text-black"
-        style={{
-          width: '80mm',
-          maxWidth: '80mm',
-          minHeight: 'auto',
-          margin: '0 auto',
-          padding: '6mm',
-          fontFamily: '"Courier New", Courier, monospace',
-          fontSize: '12px',
-          lineHeight: '1.5',
-          color: '#000',
-        }}
+        className="receipt-container rcpt-root bg-white text-black"
         role="document"
         aria-label="Sales Receipt"
       >
         {/* ============================================
             HEADER SECTION - Company Information
             ============================================ */}
-        <header className="text-center mb-3 pb-3" style={{ borderBottom: '2px solid #000' }}>
+        <header className="text-center mb-3 pb-3 rcpt-header">
           {/* Company Name */}
           <h1
-            className="font-bold uppercase mb-2"
-            style={{
-              fontSize: '18px',
-              lineHeight: '1.2',
-              letterSpacing: '0.5px',
-              margin: '0 0 8px 0',
-            }}
+            className="font-bold uppercase mb-2 rcpt-company-name"
           >
             {companyInfo.name}
           </h1>
@@ -162,22 +144,21 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
           {/* Address */}
           {companyInfo.address && (
             <p
-              className="text-center whitespace-pre-line mb-1"
-              style={{ fontSize: '11px', lineHeight: '1.4', margin: '0 0 4px 0', fontWeight: 'bold' }}
+              className="text-center whitespace-pre-line mb-1 rcpt-address"
             >
               {companyInfo.address}
             </p>
           )}
 
           {/* Contact Information */}
-          <div className="text-center" style={{ fontSize: '11px', margin: '4px 0' }}>
+          <div className="text-center rcpt-contact">
             {companyInfo.phone && (
-              <p style={{ margin: '0 0 2px 0' }}>
+              <p className="rcpt-contact-line">
                 <strong>Tel:</strong> {companyInfo.phone}
               </p>
             )}
             {companyInfo.email && (
-              <p style={{ margin: '0 0 2px 0' }}>
+              <p className="rcpt-contact-line">
                 <strong>Email:</strong> {companyInfo.email}
               </p>
             )}
@@ -186,18 +167,13 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
           {/* Tax Information (URA Compliance) */}
           {companyInfo.tin && (
             <div
-              className="text-center mt-2 pt-2"
-              style={{
-                borderTop: '1px dashed #666',
-                fontSize: '11px',
-                fontWeight: 'bold',
-              }}
+              className="text-center mt-2 pt-2 rcpt-tax-info"
             >
-              <p style={{ margin: '0 0 2px 0' }}>
+              <p className="rcpt-contact-line">
                 <strong>TIN:</strong> {companyInfo.tin}
               </p>
               {companyInfo.vatRegistered && (
-                <p style={{ margin: '0' }}>
+                <p className="rcpt-m0">
                   <strong>VAT REGISTERED</strong>
                 </p>
               )}
@@ -209,15 +185,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
             RECEIPT TYPE BANNER
             ============================================ */}
         <div
-          className="text-center font-bold uppercase py-2 mb-3"
-          style={{
-            backgroundColor: '#000',
-            color: '#fff',
-            fontSize: '18px',
-            letterSpacing: '2px',
-            margin: '0 -6mm',
-            padding: '8px 0',
-          }}
+          className="text-center font-bold uppercase py-2 mb-3 rcpt-banner"
         >
           TAX INVOICE / RECEIPT
         </div>
@@ -225,37 +193,37 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
         {/* ============================================
             TRANSACTION DETAILS
             ============================================ */}
-        <section className="mb-3 pb-2" style={{ borderBottom: '1px solid #666', fontSize: '16px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <section className="mb-3 pb-2 rcpt-section-bordered">
+          <table className="rcpt-table">
             <tbody>
               <tr>
-                <td style={{ padding: '2px 0', width: '40%' }}>
+                <td className="rcpt-cell-w40">
                   <strong>Receipt No:</strong>
                 </td>
-                <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold' }}>{saleNumber}</td>
+                <td className="rcpt-cell-right-bold">{saleNumber}</td>
               </tr>
               <tr>
-                <td style={{ padding: '2px 0' }}>
+                <td className="rcpt-cell">
                   <strong>Date & Time:</strong>
                 </td>
-                <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold' }}>{formatDate(date)}</td>
+                <td className="rcpt-cell-right-bold">{formatDate(date)}</td>
               </tr>
               {customerName && (
                 <tr>
-                  <td style={{ padding: '2px 0' }}>
+                  <td className="rcpt-cell">
                     <strong>Customer:</strong>
                   </td>
-                  <td style={{ padding: '2px 0', textAlign: 'right', textTransform: 'uppercase', fontWeight: 'bold' }}>
+                  <td className="rcpt-cell-right-upper-bold">
                     {customerName}
                   </td>
                 </tr>
               )}
               {cashierName && (
                 <tr>
-                  <td style={{ padding: '2px 0' }}>
+                  <td className="rcpt-cell">
                     <strong>Served By:</strong>
                   </td>
-                  <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold' }}>{cashierName}</td>
+                  <td className="rcpt-cell-right-bold">{cashierName}</td>
                 </tr>
               )}
             </tbody>
@@ -266,55 +234,20 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
             ITEMS TABLE
             ============================================ */}
         <section className="mb-3">
-          <table
-            style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: '16px',
-              marginBottom: '8px',
-            }}
-          >
+          <table className="rcpt-items-table">
             {/* Table Header */}
             <thead>
-              <tr style={{ borderBottom: '2px solid #000' }}>
-                <th
-                  style={{
-                    textAlign: 'left',
-                    padding: '4px 2px',
-                    fontWeight: 'bold',
-                    width: '45%',
-                  }}
-                >
+              <tr className="rcpt-items-header-row">
+                <th className="rcpt-th-item">
                   ITEM
                 </th>
-                <th
-                  style={{
-                    textAlign: 'center',
-                    padding: '4px 2px',
-                    fontWeight: 'bold',
-                    width: '10%',
-                  }}
-                >
+                <th className="rcpt-th-qty">
                   QTY
                 </th>
-                <th
-                  style={{
-                    textAlign: 'right',
-                    padding: '4px 2px',
-                    fontWeight: 'bold',
-                    width: '22%',
-                  }}
-                >
+                <th className="rcpt-th-price">
                   PRICE
                 </th>
-                <th
-                  style={{
-                    textAlign: 'right',
-                    padding: '4px 2px',
-                    fontWeight: 'bold',
-                    width: '23%',
-                  }}
-                >
+                <th className="rcpt-th-total">
                   TOTAL
                 </th>
               </tr>
@@ -323,53 +256,22 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
             {/* Table Body */}
             <tbody>
               {items.map((item, index) => (
-                <tr key={index} style={{ borderBottom: '1px dotted #999' }}>
-                  <td
-                    style={{
-                      padding: '4px 2px',
-                      verticalAlign: 'top',
-                      wordBreak: 'break-word',
-                      lineHeight: '1.3',
-                      fontWeight: 'bold',
-                    }}
-                  >
+                <tr key={index} className="rcpt-item-row">
+                  <td className="rcpt-td-name">
                     {item.productName}
                     {item.discount !== undefined && item.discount > 0 && (
-                      <div style={{ fontSize: '11px', color: '#c00', fontWeight: 'normal', fontStyle: 'italic' }}>
+                      <div className="rcpt-discount-note">
                         Disc: -{formatCurrency(item.discount)}
                       </div>
                     )}
                   </td>
-                  <td
-                    style={{
-                      textAlign: 'center',
-                      padding: '4px 2px',
-                      verticalAlign: 'top',
-                      fontWeight: 'bold',
-                    }}
-                  >
+                  <td className="rcpt-td-qty">
                     {item.quantity}
                   </td>
-                  <td
-                    style={{
-                      textAlign: 'right',
-                      padding: '4px 2px',
-                      verticalAlign: 'top',
-                      whiteSpace: 'nowrap',
-                      fontWeight: 'bold',
-                    }}
-                  >
+                  <td className="rcpt-td-price">
                     {formatCurrency(item.unitPrice)}
                   </td>
-                  <td
-                    style={{
-                      textAlign: 'right',
-                      padding: '4px 2px',
-                      verticalAlign: 'top',
-                      fontWeight: 'bold',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
+                  <td className="rcpt-td-amount">
                     {formatCurrency(item.total)}
                   </td>
                 </tr>
@@ -381,15 +283,15 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
         {/* ============================================
             TOTALS SECTION
             ============================================ */}
-        <section className="mb-3 pb-2" style={{ borderTop: '2px solid #000', paddingTop: '8px' }}>
-          <table style={{ width: '100%', fontSize: '18px', borderCollapse: 'collapse' }}>
+        <section className="mb-3 pb-2 rcpt-totals-section">
+          <table className="rcpt-totals-table">
             <tbody>
               {/* Subtotal */}
               <tr>
-                <td style={{ padding: '2px 0', textAlign: 'right', paddingRight: '8px' }}>
+                <td className="rcpt-td-label">
                   <strong>SUBTOTAL:</strong>
                 </td>
-                <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold', width: '35%' }}>
+                <td className="rcpt-td-value">
                   {cs} {formatCurrency(subtotal)}
                 </td>
               </tr>
@@ -397,10 +299,10 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
               {/* Discount */}
               {discountAmount !== undefined && discountAmount > 0 && (
                 <tr>
-                  <td style={{ padding: '2px 0', textAlign: 'right', paddingRight: '8px', color: '#c00' }}>
+                  <td className="rcpt-td-label-red">
                     <strong>DISCOUNT:</strong>
                   </td>
-                  <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold', color: '#c00' }}>
+                  <td className="rcpt-td-value-red">
                     -{cs} {formatCurrency(discountAmount)}
                   </td>
                 </tr>
@@ -409,35 +311,21 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
               {/* Tax */}
               {taxAmount > 0 && (
                 <tr>
-                  <td style={{ padding: '2px 0', textAlign: 'right', paddingRight: '8px' }}>
+                  <td className="rcpt-td-label">
                     <strong>VAT ({taxRate}%):</strong>
                   </td>
-                  <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold' }}>
+                  <td className="rcpt-td-value">
                     {cs} {formatCurrency(taxAmount)}
                   </td>
                 </tr>
               )}
 
               {/* Grand Total */}
-              <tr style={{ borderTop: '2px solid #000' }}>
-                <td
-                  style={{
-                    padding: '6px 8px 6px 0',
-                    textAlign: 'right',
-                    fontSize: '20px',
-                    fontWeight: 'bold',
-                  }}
-                >
+              <tr className="rcpt-grand-total-row">
+                <td className="rcpt-grand-total-label">
                   TOTAL:
                 </td>
-                <td
-                  style={{
-                    padding: '6px 0',
-                    textAlign: 'right',
-                    fontSize: '20px',
-                    fontWeight: 'bold',
-                  }}
-                >
+                <td className="rcpt-grand-total-value">
                   {cs} {formatCurrency(total)}
                 </td>
               </tr>
@@ -448,23 +336,23 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
         {/* ============================================
             PAYMENT INFORMATION
             ============================================ */}
-        <section className="mb-3 pb-2" style={{ borderTop: '1px solid #666', paddingTop: '8px' }}>
-          <table style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
+        <section className="mb-3 pb-2 rcpt-payment-section">
+          <table className="rcpt-payment-table">
             <tbody>
               {/* Show multiple payment methods if split payment */}
               {payments && payments.length > 1 ? (
                 <>
                   <tr>
-                    <td colSpan={2} style={{ padding: '2px 0', fontWeight: 'bold', fontSize: '13px' }}>
+                    <td colSpan={2} className="rcpt-payment-methods-label">
                       Payment Methods:
                     </td>
                   </tr>
                   {payments.map((payment, idx) => (
                     <tr key={idx}>
-                      <td style={{ padding: '2px 0 2px 8px', textAlign: 'right', paddingRight: '8px' }}>
+                      <td className="rcpt-split-label">
                         {payment.method === 'CREDIT' ? 'Balance Due' : payment.method}:
                       </td>
-                      <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold', width: '35%' }}>
+                      <td className="rcpt-split-value">
                         {cs} {formatCurrency(payment.amount)}
                       </td>
                     </tr>
@@ -473,18 +361,10 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
               ) : (
                 /* Single Payment Method */
                 <tr>
-                  <td style={{ padding: '2px 0', textAlign: 'right', paddingRight: '8px' }}>
+                  <td className="rcpt-td-label">
                     <strong>Payment Method:</strong>
                   </td>
-                  <td
-                    style={{
-                      padding: '2px 0',
-                      textAlign: 'right',
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase',
-                      width: '35%',
-                    }}
-                  >
+                  <td className="rcpt-payment-method-value">
                     {paymentMethod}
                   </td>
                 </tr>
@@ -493,10 +373,10 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
               {/* Amount Tendered (what customer gave) - show when customer gives more than total */}
               {(amountTendered !== undefined && amountTendered > total) && (
                 <tr>
-                  <td style={{ padding: '2px 0', textAlign: 'right', paddingRight: '8px' }}>
+                  <td className="rcpt-td-label">
                     <strong>Amount Tendered:</strong>
                   </td>
-                  <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold' }}>
+                  <td className="rcpt-td-value">
                     {cs} {formatCurrency(amountTendered)}
                   </td>
                 </tr>
@@ -505,10 +385,10 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
               {/* Amount Paid - show when it differs from total (partial payment or overpayment) */}
               {amountPaid !== undefined && amountPaid !== total && !amountTendered && (
                 <tr>
-                  <td style={{ padding: '2px 0', textAlign: 'right', paddingRight: '8px' }}>
+                  <td className="rcpt-td-label">
                     <strong>Amount Paid:</strong>
                   </td>
-                  <td style={{ padding: '2px 0', textAlign: 'right', fontWeight: 'bold' }}>
+                  <td className="rcpt-td-value">
                     {cs} {formatCurrency(amountPaid)}
                   </td>
                 </tr>
@@ -516,25 +396,11 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
 
               {/* Change - prominently displayed when customer gets change back */}
               {change !== undefined && change > 0 && (
-                <tr style={{ borderTop: '2px solid #000', backgroundColor: '#f0f0f0' }}>
-                  <td
-                    style={{
-                      padding: '6px 8px 6px 0',
-                      textAlign: 'right',
-                      fontSize: '18px',
-                      fontWeight: 'bold',
-                    }}
-                  >
+                <tr className="rcpt-change-row">
+                  <td className="rcpt-change-label">
                     CHANGE DUE:
                   </td>
-                  <td
-                    style={{
-                      padding: '6px 0',
-                      textAlign: 'right',
-                      fontSize: '18px',
-                      fontWeight: 'bold',
-                    }}
-                  >
+                  <td className="rcpt-change-value">
                     {cs} {formatCurrency(change)}
                   </td>
                 </tr>
@@ -542,27 +408,11 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
 
               {/* Balance Due - show for credit sales */}
               {balanceDue !== undefined && balanceDue > 0 && (
-                <tr style={{ borderTop: '2px solid #000', backgroundColor: '#fff3cd' }}>
-                  <td
-                    style={{
-                      padding: '6px 8px 6px 0',
-                      textAlign: 'right',
-                      fontSize: '18px',
-                      fontWeight: 'bold',
-                      color: '#856404',
-                    }}
-                  >
+                <tr className="rcpt-balance-row">
+                  <td className="rcpt-balance-label">
                     BALANCE DUE:
                   </td>
-                  <td
-                    style={{
-                      padding: '6px 0',
-                      textAlign: 'right',
-                      fontSize: '18px',
-                      fontWeight: 'bold',
-                      color: '#856404',
-                    }}
-                  >
+                  <td className="rcpt-balance-value">
                     {cs} {formatCurrency(balanceDue)}
                   </td>
                 </tr>
@@ -575,36 +425,23 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
             FOOTER - Terms & Conditions
             ============================================ */}
         <footer
-          className="text-center pt-3 mt-3"
-          style={{
-            borderTop: '2px double #000',
-            fontSize: '14px',
-            lineHeight: '1.5',
-          }}
+          className="text-center pt-3 mt-3 rcpt-footer"
         >
-          <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', fontSize: '16px' }}>
+          <p className="rcpt-thank-you">
             THANK YOU FOR YOUR BUSINESS!
           </p>
 
-          <p style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 'bold' }}>
+          <p className="rcpt-terms">
             All goods sold are not returnable unless faulty
           </p>
 
-          <p style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 'bold' }}>
+          <p className="rcpt-terms">
             For inquiries: {companyInfo.phone}
           </p>
 
-          <div
-            style={{
-              marginTop: '8px',
-              paddingTop: '8px',
-              borderTop: '1px dashed #999',
-              fontSize: '12px',
-              color: '#666',
-            }}
-          >
-            <p style={{ margin: '0' }}>Powered by {settings.businessName} POS</p>
-            {settings.businessEmail && <p style={{ margin: '0' }}>{settings.businessEmail}</p>}
+          <div className="rcpt-powered-by">
+            <p className="rcpt-powered-text">Powered by {settings.businessName} POS</p>
+            {settings.businessEmail && <p className="rcpt-powered-text">{settings.businessEmail}</p>}
           </div>
         </footer>
 

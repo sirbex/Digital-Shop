@@ -235,8 +235,8 @@ export function DashboardPage() {
                         {fmt(val)}
                       </div>
                       <div
+                        ref={(el) => { if (el) el.style.height = `${pct}%`; }}
                         className={`w-full max-w-[40px] rounded-t-md transition-all duration-300 ${isToday ? 'bg-blue-500' : 'bg-blue-200 group-hover:bg-blue-400'}`}
-                        style={{ height: `${pct}%` }}
                       />
                     </div>
                     <span className={`text-[10px] ${isToday ? 'font-semibold text-blue-600' : 'text-gray-400'}`}>{dayLabel}</span>
@@ -281,9 +281,9 @@ export function DashboardPage() {
             {(inv?.totalProducts || 0) > 0 && (
               <div className="mt-3">
                 <div className="w-full h-3 rounded-full bg-gray-100 overflow-hidden flex">
-                  <div className="bg-green-400 h-full transition-all" style={{ width: `${Math.max(0, (((inv?.totalProducts || 0) - (inv?.outOfStock || 0) - (inv?.lowStock || 0)) / (inv?.totalProducts || 1)) * 100)}%` }} />
-                  <div className="bg-amber-400 h-full transition-all" style={{ width: `${((inv?.lowStock || 0) / (inv?.totalProducts || 1)) * 100}%` }} />
-                  <div className="bg-red-400 h-full transition-all" style={{ width: `${((inv?.outOfStock || 0) / (inv?.totalProducts || 1)) * 100}%` }} />
+                  <div ref={(el) => { if (el) el.style.width = `${Math.max(0, (((inv?.totalProducts || 0) - (inv?.outOfStock || 0) - (inv?.lowStock || 0)) / (inv?.totalProducts || 1)) * 100)}%`; }} className="bg-green-400 h-full transition-all" />
+                  <div ref={(el) => { if (el) el.style.width = `${((inv?.lowStock || 0) / (inv?.totalProducts || 1)) * 100}%`; }} className="bg-amber-400 h-full transition-all" />
+                  <div ref={(el) => { if (el) el.style.width = `${((inv?.outOfStock || 0) / (inv?.totalProducts || 1)) * 100}%`; }} className="bg-red-400 h-full transition-all" />
                 </div>
                 <p className="text-[10px] text-gray-400 mt-1.5 text-center">{inv!.totalProducts} products total</p>
               </div>
@@ -324,7 +324,7 @@ export function DashboardPage() {
                       <span className="text-sm font-semibold text-gray-900 ml-2 whitespace-nowrap">{fmt(rev)}</span>
                     </div>
                     <div className="ml-6 w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                      <div className="h-full bg-blue-400 rounded-full transition-all" style={{ width: `${(rev / maxRev) * 100}%` }} />
+                      <div ref={(el) => { if (el) el.style.width = `${(rev / maxRev) * 100}%`; }} className="h-full bg-blue-400 rounded-full transition-all" />
                     </div>
                   </div>
                 );

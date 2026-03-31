@@ -1,0 +1,347 @@
+/* ============================================
+   Receipt Component Styles
+   Optimized for 80mm thermal printers
+   (Moved from inline styles for lint compliance)
+   ============================================ */
+
+/* ── Root Container ── */
+.rcpt-root {
+  width: 80mm;
+  max-width: 80mm;
+  margin: 0 auto;
+  padding: 6mm;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #000;
+}
+
+/* ── Header ── */
+.rcpt-header {
+  border-bottom: 2px solid #000;
+}
+
+.rcpt-company-name {
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: 0.5px;
+  margin: 0 0 8px 0;
+}
+
+.rcpt-address {
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 0 0 4px 0;
+  font-weight: bold;
+}
+
+.rcpt-contact {
+  font-size: 11px;
+  margin: 4px 0;
+}
+
+.rcpt-contact-line {
+  margin: 0 0 2px 0;
+}
+
+.rcpt-tax-info {
+  border-top: 1px dashed #666;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.rcpt-m0 {
+  margin: 0;
+}
+
+/* ── Banner ── */
+.rcpt-banner {
+  background-color: #000;
+  color: #fff;
+  font-size: 18px;
+  letter-spacing: 2px;
+  margin: 0 -6mm;
+  padding: 8px 0;
+}
+
+/* ── Transaction Details Section ── */
+.rcpt-section-bordered {
+  border-bottom: 1px solid #666;
+  font-size: 16px;
+}
+
+.rcpt-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rcpt-cell {
+  padding: 2px 0;
+}
+
+.rcpt-cell-w40 {
+  padding: 2px 0;
+  width: 40%;
+}
+
+.rcpt-cell-right-bold {
+  padding: 2px 0;
+  text-align: right;
+  font-weight: bold;
+}
+
+.rcpt-cell-right-upper-bold {
+  padding: 2px 0;
+  text-align: right;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+/* ── Items Table ── */
+.rcpt-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.rcpt-items-header-row {
+  border-bottom: 2px solid #000;
+}
+
+.rcpt-th-item {
+  text-align: left;
+  padding: 4px 2px;
+  font-weight: bold;
+  width: 45%;
+}
+
+.rcpt-th-qty {
+  text-align: center;
+  padding: 4px 2px;
+  font-weight: bold;
+  width: 10%;
+}
+
+.rcpt-th-price {
+  text-align: right;
+  padding: 4px 2px;
+  font-weight: bold;
+  width: 22%;
+}
+
+.rcpt-th-total {
+  text-align: right;
+  padding: 4px 2px;
+  font-weight: bold;
+  width: 23%;
+}
+
+.rcpt-item-row {
+  border-bottom: 1px dotted #999;
+}
+
+.rcpt-td-name {
+  padding: 4px 2px;
+  vertical-align: top;
+  word-break: break-word;
+  line-height: 1.3;
+  font-weight: bold;
+}
+
+.rcpt-discount-note {
+  font-size: 11px;
+  color: #c00;
+  font-weight: normal;
+  font-style: italic;
+}
+
+.rcpt-td-qty {
+  text-align: center;
+  padding: 4px 2px;
+  vertical-align: top;
+  font-weight: bold;
+}
+
+.rcpt-td-price {
+  text-align: right;
+  padding: 4px 2px;
+  vertical-align: top;
+  white-space: nowrap;
+  font-weight: bold;
+}
+
+.rcpt-td-amount {
+  text-align: right;
+  padding: 4px 2px;
+  vertical-align: top;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+/* ── Totals Section ── */
+.rcpt-totals-section {
+  border-top: 2px solid #000;
+  padding-top: 8px;
+}
+
+.rcpt-totals-table {
+  width: 100%;
+  font-size: 18px;
+  border-collapse: collapse;
+}
+
+.rcpt-td-label {
+  padding: 2px 0;
+  text-align: right;
+  padding-right: 8px;
+}
+
+.rcpt-td-value {
+  padding: 2px 0;
+  text-align: right;
+  font-weight: bold;
+  width: 35%;
+}
+
+.rcpt-td-label-red {
+  padding: 2px 0;
+  text-align: right;
+  padding-right: 8px;
+  color: #c00;
+}
+
+.rcpt-td-value-red {
+  padding: 2px 0;
+  text-align: right;
+  font-weight: bold;
+  color: #c00;
+}
+
+.rcpt-grand-total-row {
+  border-top: 2px solid #000;
+}
+
+.rcpt-grand-total-label {
+  padding: 6px 8px 6px 0;
+  text-align: right;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.rcpt-grand-total-value {
+  padding: 6px 0;
+  text-align: right;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+/* ── Payment Section ── */
+.rcpt-payment-section {
+  border-top: 1px solid #666;
+  padding-top: 8px;
+}
+
+.rcpt-payment-table {
+  width: 100%;
+  font-size: 14px;
+  border-collapse: collapse;
+}
+
+.rcpt-payment-methods-label {
+  padding: 2px 0;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.rcpt-split-label {
+  padding: 2px 0 2px 8px;
+  text-align: right;
+  padding-right: 8px;
+}
+
+.rcpt-split-value {
+  padding: 2px 0;
+  text-align: right;
+  font-weight: bold;
+  width: 35%;
+}
+
+.rcpt-payment-method-value {
+  padding: 2px 0;
+  text-align: right;
+  font-weight: bold;
+  text-transform: uppercase;
+  width: 35%;
+}
+
+.rcpt-change-row {
+  border-top: 2px solid #000;
+  background-color: #f0f0f0;
+}
+
+.rcpt-change-label {
+  padding: 6px 8px 6px 0;
+  text-align: right;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.rcpt-change-value {
+  padding: 6px 0;
+  text-align: right;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.rcpt-balance-row {
+  border-top: 2px solid #000;
+  background-color: #fff3cd;
+}
+
+.rcpt-balance-label {
+  padding: 6px 8px 6px 0;
+  text-align: right;
+  font-size: 18px;
+  font-weight: bold;
+  color: #856404;
+}
+
+.rcpt-balance-value {
+  padding: 6px 0;
+  text-align: right;
+  font-size: 18px;
+  font-weight: bold;
+  color: #856404;
+}
+
+/* ── Footer ── */
+.rcpt-footer {
+  border-top: 2px double #000;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.rcpt-thank-you {
+  margin: 0 0 8px 0;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.rcpt-terms {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.rcpt-powered-by {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #999;
+  font-size: 12px;
+  color: #666;
+}
+
+.rcpt-powered-text {
+  margin: 0;
+}
