@@ -68,7 +68,7 @@ export function SuppliersPage() {
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [filterPaymentTerms, setFilterPaymentTerms] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('active');
 
   // Load suppliers
   const loadSuppliers = async () => {
