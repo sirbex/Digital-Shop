@@ -1374,7 +1374,17 @@ function SupplierFormModal({ supplier, onClose, onSubmit }: SupplierFormModalPro
       return;
     }
 
-    onSubmit(formData);
+    // Strip empty strings so backend receives undefined instead of ""
+    const cleanedData = {
+      ...formData,
+      contactPerson: formData.contactPerson?.trim() || undefined,
+      email: formData.email?.trim() || undefined,
+      phone: formData.phone?.trim() || undefined,
+      address: formData.address?.trim() || undefined,
+      notes: formData.notes?.trim() || undefined,
+    };
+
+    onSubmit(cleanedData as SupplierFormData);
   };
 
   return (
