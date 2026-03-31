@@ -7,7 +7,7 @@ import * as usersService from './usersService.js';
 // Validation schemas
 const updateUserSchema = z.object({
   fullName: z.string().min(1).max(255).optional(),
-  role: z.enum(['ADMIN', 'MANAGER', 'CASHIER', 'STAFF']).optional(),
+  role: z.enum(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'CASHIER', 'STAFF']).optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -25,6 +25,10 @@ export async function getAllUsers(_req: Request, res: Response): Promise<void> {
     });
   } catch (error) {
     console.error('Controller error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get users',
+    });
   }
 }
 
@@ -142,7 +146,7 @@ export async function getUsersByRole(req: Request, res: Response): Promise<void>
   try {
     const { role } = req.params;
 
-    if (!['ADMIN', 'MANAGER', 'CASHIER', 'STAFF'].includes(role)) {
+    if (!['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'CASHIER', 'STAFF'].includes(role)) {
       res.status(400).json({
         success: false,
         error: 'Invalid role',
@@ -152,7 +156,7 @@ export async function getUsersByRole(req: Request, res: Response): Promise<void>
 
     const users = await usersService.getUsersByRole(
       pool,
-      role as 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF'
+      role as 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF'
     );
 
     res.json({
@@ -161,6 +165,10 @@ export async function getUsersByRole(req: Request, res: Response): Promise<void>
     });
   } catch (error) {
     console.error('Controller error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get users by role',
+    });
   }
 }
 

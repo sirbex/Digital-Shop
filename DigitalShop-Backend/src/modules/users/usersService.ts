@@ -96,7 +96,7 @@ export async function deleteUser(pool: Pool, id: string): Promise<void> {
  */
 export async function getUsersByRole(
   pool: Pool,
-  role: 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF'
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF'
 ): Promise<User[]> {
   const rows = await usersRepository.getUsersByRole(pool, role);
   return rows.map(toUser);
@@ -107,6 +107,7 @@ export interface UserStats {
   active: number;
   inactive: number;
   byRole: {
+    SUPER_ADMIN: number;
     ADMIN: number;
     MANAGER: number;
     CASHIER: number;
@@ -123,6 +124,7 @@ export async function getUserStats(pool: Pool): Promise<UserStats> {
       COUNT(*)::integer as total,
       COUNT(*) FILTER (WHERE is_active = true)::integer as active,
       COUNT(*) FILTER (WHERE is_active = false)::integer as inactive,
+      COUNT(*) FILTER (WHERE role = 'SUPER_ADMIN')::integer as super_admin_count,
       COUNT(*) FILTER (WHERE role = 'ADMIN')::integer as admin_count,
       COUNT(*) FILTER (WHERE role = 'MANAGER')::integer as manager_count,
       COUNT(*) FILTER (WHERE role = 'CASHIER')::integer as cashier_count,
@@ -139,6 +141,7 @@ export async function getUserStats(pool: Pool): Promise<UserStats> {
       active: row.active,
       inactive: row.inactive,
       byRole: {
+        SUPER_ADMIN: row.super_admin_count,
         ADMIN: row.admin_count,
         MANAGER: row.manager_count,
         CASHIER: row.cashier_count,

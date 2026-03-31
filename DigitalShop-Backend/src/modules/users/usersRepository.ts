@@ -141,7 +141,7 @@ export async function deleteUser(pool: Pool, id: string): Promise<void> {
  */
 export async function getUsersByRole(
   pool: Pool,
-  role: 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF'
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STAFF'
 ): Promise<UserRow[]> {
   const query = `
     SELECT id, email, full_name, role, is_active, created_at, updated_at
