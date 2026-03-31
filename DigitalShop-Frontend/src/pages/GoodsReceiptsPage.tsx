@@ -315,7 +315,7 @@ export default function GoodsReceiptsPage() {
       const batchNumber = item.batchNumber || item.batch_number || '-';
       const expiryDate = item.expiryDate || item.expiry_date || '-';
       const totalCost = new Decimal(baseReceivedQty).times(baseUnitCost).toNumber();
-      const qtyVariance = baseOrderedQty > 0 ? ((baseReceivedQty - baseOrderedQty) / baseOrderedQty * 100).toFixed(2) : '0.00';
+      const qtyVariance = baseOrderedQty > 0 ? new Decimal(baseReceivedQty).minus(baseOrderedQty).div(baseOrderedQty).times(100).toFixed(2) : '0.00';
 
       return [
         productName,

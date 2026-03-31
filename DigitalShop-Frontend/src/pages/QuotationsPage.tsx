@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Decimal from 'decimal.js';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { quotationsApi, productsApi, customersApi } from '../lib/api';
 import { usePermissions } from '../hooks/usePermissions';
@@ -303,18 +304,23 @@ export default function QuotationsPage() {
 
   // Calculate totals
   function calculateTotals(items: QuotationItem[]) {
-    let subtotal = 0;
-    let taxAmount = 0;
-    let discountAmount = 0;
+    let subtotal = new Decimal(0);
+    let taxAmount = new Decimal(0);
+    let discountAmount = new Decimal(0);
     for (const item of items) {
-      const lineSub = item.unitPrice * item.quantity;
-      const lineDisc = item.discountAmount || 0;
-      const lineTax = (lineSub - lineDisc) * ((item.taxRate || 0) / 100);
-      subtotal += lineSub;
-      taxAmount += lineTax;
-      discountAmount += lineDisc;
+      const lineSub = new Decimal(item.unitPrice).times(item.quantity);
+      const lineDisc = new Decimal(item.discountAmount || 0);
+      const lineTax = lineSub.minus(lineDisc).times(new Decimal(item.taxRate || 0).div(100));
+      subtotal = subtotal.plus(lineSub);
+      taxAmount = taxAmount.plus(lineTax);
+      discountAmount = discountAmount.plus(lineDisc);
     }
-    return { subtotal, taxAmount, discountAmount, totalAmount: subtotal - discountAmount + taxAmount };
+    return {
+      subtotal: subtotal.toNumber(),
+      taxAmount: taxAmount.toNumber(),
+      discountAmount: discountAmount.toNumber(),
+      totalAmount: subtotal.minus(discountAmount).plus(taxAmount).toNumber(),
+    };
   }
 
   const formTotals = calculateTotals(formItems);

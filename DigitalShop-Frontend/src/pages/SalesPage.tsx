@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import Decimal from 'decimal.js';
 import { salesApi, api, type ApiResponse } from '../lib/api';
 import { Receipt } from '../components/pos/Receipt';
 import { usePrint } from '../hooks/usePrint';
@@ -432,17 +433,22 @@ export function SalesPage() {
   };
 
   const calculateTotals = () => {
-    const total = filteredSales.reduce((sum, sale) => sum + parseFloat(sale.totalAmount || 0), 0);
-    const profit = filteredSales.reduce((sum, sale) => sum + parseFloat(sale.profit || 0), 0);
-    const avgMargin =
-      filteredSales.length > 0
-        ? filteredSales.reduce((sum, sale) => sum + parseFloat(sale.profitMargin || 0), 0) / filteredSales.length
-        : 0;
+    let total = new Decimal(0);
+    let profit = new Decimal(0);
+    let marginSum = new Decimal(0);
+    for (const sale of filteredSales) {
+      total = total.plus(sale.totalAmount || 0);
+      profit = profit.plus(sale.profit || 0);
+      marginSum = marginSum.plus(sale.profitMargin || 0);
+    }
+    const avgMargin = filteredSales.length > 0
+      ? marginSum.div(filteredSales.length).toNumber()
+      : 0;
 
     return {
       count: filteredSales.length,
-      total,
-      profit,
+      total: total.toNumber(),
+      profit: profit.toNumber(),
       avgMargin,
     };
   };

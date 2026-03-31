@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Decimal from 'decimal.js';
 import { useNavigate } from 'react-router-dom';
 import { salesApi, inventoryApi, reportsApi } from '../lib/api';
 import { usePermissions } from '../hooks/usePermissions';
@@ -78,8 +79,8 @@ export function DashboardPage() {
   };
   const fmtShort = (v: number | string | undefined | null) => {
     const n = typeof v === 'string' ? parseFloat(v) || 0 : (v || 0);
-    if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
-    if (n >= 1000) return `${(n / 1000).toFixed(0)}K`;
+    if (n >= 1000000) return `${new Decimal(n).div(1000000).toFixed(1)}M`;
+    if (n >= 1000) return `${new Decimal(n).div(1000).toFixed(0)}K`;
     return Math.round(n).toLocaleString();
   };
 

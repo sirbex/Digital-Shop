@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Decimal from 'decimal.js';
 import { useNavigate } from 'react-router-dom';
 import { customersApi } from '../lib/api';
 import { CustomerForm } from '../components/forms/CustomerForm';
@@ -99,7 +100,7 @@ export function CustomersPage() {
             <p className="text-2xl font-bold text-red-600">
               {cs}{' '}
               {Math.abs(
-                customers.reduce((sum, c) => sum + Math.min(0, c.balance), 0)
+                customers.reduce((sum, c) => new Decimal(sum).plus(Decimal.min(0, c.balance)).toNumber(), 0 as number)
               ).toLocaleString()}
             </p>
           </div>

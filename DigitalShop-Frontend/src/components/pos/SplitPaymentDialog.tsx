@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Decimal from 'decimal.js';
 import { X, Plus, Trash2 } from 'lucide-react';
 import POSButton from './POSButton';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -42,8 +43,8 @@ export default function SplitPaymentDialog({
     }
   }, [isOpen, totalAmount]);
 
-  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-  const remaining = totalAmount - totalPaid;
+  const totalPaid = payments.reduce((sum, p) => new Decimal(sum).plus(p.amount).toNumber(), 0);
+  const remaining = new Decimal(totalAmount).minus(totalPaid).toNumber();
 
   const addPaymentLine = () => {
     const newId = Date.now().toString();

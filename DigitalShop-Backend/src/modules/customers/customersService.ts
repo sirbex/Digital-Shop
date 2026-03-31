@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import Decimal from 'decimal.js';
 import { logger } from '../../utils/logger.js';
 import * as customersRepository from './customersRepository.js';
 
@@ -327,9 +328,9 @@ export async function canMakeCreditPurchase(
   
   // Customer balance is negative when they owe money (from triggers)
   // currentDebt = absolute value of negative balance
-  const currentDebt = Math.abs(Math.min(0, customer.balance));
-  const totalDebt = currentDebt + amount;
-  const availableCredit = Math.max(0, customer.creditLimit - currentDebt);
+  const currentDebt = new Decimal(customer.balance).negated().clamp(0, Infinity).toNumber();
+  const totalDebt = new Decimal(currentDebt).plus(amount).toNumber();
+  const availableCredit = new Decimal(customer.creditLimit).minus(currentDebt).clamp(0, Infinity).toNumber();
 
   if (customer.creditLimit <= 0) {
     return {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Decimal from 'decimal.js';
 import { z } from 'zod';
 import { api } from '../lib/api';
 import { usePermissions } from '../hooks/usePermissions';
@@ -193,7 +194,7 @@ export function CashRegisterPage() {
             <div className="bg-white p-4 rounded-lg shadow">
               <p className="text-sm text-gray-600">Expected Cash</p>
               <p className="text-2xl font-bold text-gray-900">
-                {cs} {(currentSession.openingFloat + currentSession.totalCashSales).toLocaleString()}
+                {cs} {new Decimal(currentSession.openingFloat).plus(currentSession.totalCashSales).toNumber().toLocaleString()}
               </p>
             </div>
           </div>
@@ -319,7 +320,7 @@ export function CashRegisterPage() {
                     <td className="px-6 py-4 text-sm">
                       {session.cashVariance !== null ? (
                         <span className={session.cashVariance >= 0 ? 'text-green-600' : 'text-red-600'}>
-                          {session.cashVariance >= 0 ? '+' : ''}{session.cashVariance.toFixed(2)}
+                          {session.cashVariance >= 0 ? '+' : ''}{new Decimal(session.cashVariance).toFixed(2)}
                         </span>
                       ) : '-'}
                     </td>

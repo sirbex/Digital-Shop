@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import Decimal from 'decimal.js';
 import { logger } from '../../utils/logger.js';
 import * as suppliersRepository from './suppliersRepository.js';
 
@@ -255,7 +256,7 @@ export async function recordSupplierPayment(
   const supplier = await getSupplierById(pool, supplierId);
 
   // Validate payment amount doesn't exceed balance
-  if (data.amount > supplier.balance + 0.01) {
+  if (new Decimal(data.amount).greaterThan(new Decimal(supplier.balance).plus(0.01))) {
     throw new Error(
       `Payment amount (${data.amount}) exceeds supplier balance (${supplier.balance})`
     );

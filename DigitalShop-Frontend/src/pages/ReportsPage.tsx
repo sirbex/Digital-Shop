@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import Decimal from 'decimal.js';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { reportsApi } from '../lib/api';
@@ -324,8 +325,8 @@ export function ReportsPage() {
         category: (c.category || '').replace(/_/g, ' '),
         amount: parseFloat(c.amount || 0),
       }));
-      const np = reportData.netProfit ?? (gp - totalExp);
-      const npMargin = reportData.netProfitMargin ?? (netRev > 0 ? (np / netRev) * 100 : 0);
+      const np = reportData.netProfit != null ? parseFloat(String(reportData.netProfit)) : new Decimal(gp).minus(totalExp).toNumber();
+      const npMargin = reportData.netProfitMargin != null ? parseFloat(String(reportData.netProfitMargin)) : (netRev > 0 ? new Decimal(np).div(netRev).times(100).toNumber() : 0);
       const ar = parseFloat(reportData.accountsReceivable || 0);
       const iv = parseFloat(reportData.inventoryValue || 0);
 
@@ -1222,8 +1223,8 @@ const fmt = (v: number) => `${cs} ${Math.abs(v).toLocaleString(undefined, { mini
     const totalExpenses = operatingExpenses.total || 0;
     const expensesByCategory = operatingExpenses.byCategory || [];
     
-    const netProfit = reportData.netProfit ?? (grossProfit - totalExpenses);
-    const netProfitMargin = reportData.netProfitMargin ?? (netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0);
+    const netProfit = reportData.netProfit != null ? parseFloat(String(reportData.netProfit)) : new Decimal(grossProfit).minus(totalExpenses).toNumber();
+    const netProfitMargin = reportData.netProfitMargin != null ? parseFloat(String(reportData.netProfitMargin)) : (netRevenue > 0 ? new Decimal(netProfit).div(netRevenue).times(100).toNumber() : 0);
 
     return (
       <div className="space-y-6">
