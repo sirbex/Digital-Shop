@@ -24,7 +24,6 @@ export default defineConfig({
       '@utils': path.resolve(__dirname, './src/utils'),
       '@services': path.resolve(__dirname, './src/services'),
       '@types': path.resolve(__dirname, './src/types'),
-      '@shared': path.resolve(__dirname, '../DigitalShop-Shared'),
     },
   },
   build: {
